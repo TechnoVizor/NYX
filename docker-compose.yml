@@ -1,7 +1,7 @@
 # docker compose --profile plugins build && docker compose up --build    web -> http://localhost:3001
 # Only the web UI is published. Plugin containers can reach whatever the host publishes (Docker Desktop forwards
 # host.docker.internal), so Postgres and the API stay unpublished. For host-side development and tests:
-#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres
+#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner
 services:
   postgres:
     image: postgres:17-alpine

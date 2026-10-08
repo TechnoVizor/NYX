@@ -54,7 +54,7 @@ These are the rules I'm being built on. They are design constraints, not marketi
 
 - **Scan what you don't own.** Targets go through a scope registry first. Out of scope means refused, not "warned".
 - **Let plugins wander.** Every scanner runs in its own box: rootless runtime, no Docker or Podman socket, read-only filesystem, network limited to your scope, per-target rate limits, no database credentials.
-  Today: read-only, non-root, no capabilities, CPU/RAM/process limits, a time limit, no route to the database. Next: network egress limited to your scope.
+  Today: read-only, non-root, no capabilities, CPU/RAM/process limits, a time limit, and no route to the database, the API or the runner: only the web UI is published, which is all a plugin can see of this machine. Next: network egress limited to your scope.
 - **Make things up.** Risk comes from evidence and vulnerability data, not from a language model's mood. AI helps me sort and explain; it never invents a finding.
 
 ## How I'm built
@@ -84,7 +84,7 @@ docker compose --profile plugins build   # my scanners: Subfinder, dnsx, httpx
 docker compose up --build
 ```
 
-Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API lives on <http://localhost:8000> with docs at `/docs`.
+Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API stays private to the containers; the web app talks to it for you.
 
 Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test`: add `nyx-lab.test` to scope with active scanning allowed and point httpx at it.
 
@@ -104,10 +104,10 @@ Everything listens on `127.0.0.1` only, on purpose.
 <summary>Developing without containers</summary>
 
 ```bash
-docker compose up -d postgres
+docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner   # publishes them on 127.0.0.1 for host-side tools
 
 # terminal 1
-cd api && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8000
+cd api && uv sync && uv run alembic upgrade head && NYX_RUNNER_TOKEN=nyx-local-runner-token uv run uvicorn app.main:app --reload --port 8000
 
 # terminal 2
 cd web && pnpm install && pnpm dev --port 3001
@@ -124,8 +124,8 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 
 | Path | What lives there |
 |---|---|
-| `api/` | FastAPI service: accounts, sessions, roles. Migrations in `api/alembic`. |
-| `web/` | The workspace UI: sign-in and the workspace shell. Scans, findings and settings are placeholders on mock data for now. |
+| `api/` | FastAPI service: accounts, scope, plugin registry and runs. Migrations in `api/alembic`. |
+| `web/` | The workspace UI: sign-in, plugins with live runs, scope settings. Scans, findings and the rest are placeholders on mock data for now. |
 | `docs/` | Design specs and implementation plans. |
 | `plugins/` | The plugin contract (JSON Schemas), the one-file SDK, a template, and Subfinder, dnsx, httpx. |
 | `runner/` | The only service with Docker access: starts each plugin in a locked-down container. |
