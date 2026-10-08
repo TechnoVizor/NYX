@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import docker
-from docker.errors import ImageNotFound, NotFound
+from docker.errors import APIError, ImageNotFound, NotFound
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -57,6 +57,11 @@ def ensure_network(d: docker.DockerClient) -> None:
         d.networks.create(NETWORK, driver="bridge")
 
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 @app.get("/v1/images/{image:path}", dependencies=[Auth])
 def image_digest(image: str):
     try:
@@ -70,6 +75,7 @@ class RunIn(BaseModel):
     digest: str
     resources: dict
     input: dict
+    permissions: dict = {}
 
 
 @app.post("/v1/runs", dependencies=[Auth])
@@ -79,7 +85,8 @@ def start(body: RunIn):
     try:
         d = engine()
         ensure_network(d)
-        container = d.containers.run(body.digest, **container_config(body.resources, body.input, EXTRA_ENV))
+        cfg = container_config(body.resources, body.input, EXTRA_ENV, body.permissions)
+        container = d.containers.run(body.digest, **cfg)
     except Exception as e:  # noqa: BLE001
         slots.release()
         raise HTTPException(500, f"Could not start the plugin: {e}") from None
@@ -88,32 +95,47 @@ def start(body: RunIn):
     )
 
 
-def stream(container, timeout: int):
-    timed_out = threading.Event()
+MAX_LINE = 64 * 1024
+
+
+def killer(container, timed_out: threading.Event):
+    """Timer callback: only a kill that actually happened counts as a timeout (an exited container answers 409)."""
 
     def kill():
-        timed_out.set()
         try:
             container.kill()
-        except NotFound:
-            pass
+        except (NotFound, APIError):
+            return
+        timed_out.set()
 
-    timer = threading.Timer(timeout, kill)
+    return kill
+
+
+def stream(container, timeout: int):
+    timed_out = threading.Event()
+    timer = threading.Timer(timeout, killer(container, timed_out))
     timer.start()
     try:
-        buf = b""
+        buf, skipping = b"", False
         for chunk in container.logs(stream=True, follow=True, stdout=True, stderr=False):
             buf += chunk
             *lines, buf = buf.split(b"\n")
             for line in lines:
-                yield line + b"\n"
-        if buf:
-            yield buf + b"\n"
+                if skipping:
+                    skipping = False  # the tail of an over-long line we already cut
+                    continue
+                yield line[:MAX_LINE] + b"\n"
+            if len(buf) > MAX_LINE:
+                # A line with no end in sight: pass its head on, drop the rest up to the next newline.
+                if not skipping:
+                    yield buf[:MAX_LINE] + b"\n"
+                buf, skipping = b"", True
+        if buf and not skipping:
+            yield buf[:MAX_LINE] + b"\n"
         code = container.wait().get("StatusCode")
-        stderr = container.logs(stdout=False, stderr=True)[-4096:].decode("utf-8", "replace")
-        yield (
-            json.dumps({"runner": {"exit_code": code, "timed_out": timed_out.is_set(), "stderr_tail": stderr}}) + "\n"
-        ).encode()
+        stderr = container.logs(stdout=False, stderr=True, tail=50)[-4096:].decode("utf-8", "replace")
+        trailer = {"runner": {"exit_code": code, "timed_out": timed_out.is_set(), "stderr_tail": stderr}}
+        yield (json.dumps(trailer) + "\n").encode()
     finally:
         timer.cancel()
         try:

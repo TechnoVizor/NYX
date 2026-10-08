@@ -35,7 +35,7 @@ def run(c, digest, timeout=30, env=None):
         "input": {"run_id": "r1", **(env or {})},
     }
     r = c.post("/v1/runs", json=body, headers=H)
-    return r.status_code, [json.loads(line) for line in r.text.splitlines() if line]
+    return r.status_code, [json.loads(line) if line.startswith("{") else line for line in r.text.splitlines() if line]
 
 
 def test_token_required():
@@ -67,3 +67,16 @@ def test_timeout_kills_container(echo_image, monkeypatch):
     code, lines = run(TestClient(app), echo_image, timeout=5)
     assert lines[-1]["runner"]["timed_out"] is True
     assert not client_docker.containers.list(all=True, filters={"ancestor": echo_image})
+
+
+def test_healthz_needs_no_token():
+    assert TestClient(app).get("/healthz").json() == {"status": "ok"}
+
+
+@needs_docker
+def test_huge_line_is_cut(echo_image, monkeypatch):
+    monkeypatch.setattr("app.main.EXTRA_ENV", {"LONG": "1"})
+    code, lines = run(TestClient(app), echo_image)
+    assert lines[-2] == {"c": 3}
+    assert lines[-1]["runner"]["exit_code"] == 0
+    assert max(len(x) for x in lines if isinstance(x, str)) <= 65536
