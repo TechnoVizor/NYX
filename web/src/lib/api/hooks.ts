@@ -8,3 +8,4 @@ export const useScan = (id: string) => useQuery({ queryKey: ["scans", id], query
 export const useFindings = () => useQuery({ queryKey: ["findings"], queryFn: api.listFindings });
 export const useFinding = (id: string) => useQuery({ queryKey: ["findings", id], queryFn: () => api.getFinding(id) });
 export const usePlugins = () => useQuery({ queryKey: ["plugins"], queryFn: api.listPlugins });
+export const useMe = () => useQuery({ queryKey: ["me"], queryFn: api.me, retry: false, staleTime: Infinity });

@@ -41,3 +41,6 @@ export type Plugin = {
   state: "installed" | "update" | "available";
   version: string;
 };
+
+export type User = { id: string; email: string; role: "admin" | "analyst" | "viewer"; created_at: string };
+export type Credentials = { email: string; password: string };

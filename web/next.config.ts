@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+// Read at build time and baked into the standalone server: compose passes API_URL=http://api:8000 as a build arg.
+const apiUrl = process.env.API_URL ?? "http://localhost:8000";
+
 const nextConfig: NextConfig = {
   output: "standalone",
-  // Every image ships pre-tuned WebP. The on-the-fly optimizer adds nothing and was seen hanging on cold
-  // concurrent requests in the container, which left NYX blank; serve the files as they are.
   images: { unoptimized: true },
+  rewrites: async () => [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }],
 };
 
 export default nextConfig;
