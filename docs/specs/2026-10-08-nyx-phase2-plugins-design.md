@@ -8,7 +8,7 @@ Phase 2 of the thesis brief (§51, §13–18, §36–37): a plugin manifest and 
 
 Success:
 
-1. `docker compose up --build` builds three plugin images. The registry lists Subfinder, dnsx and httpx with version, risk, trust and image digest. `/app/plugins` shows them from the API, not from mocks.
+1. `docker compose --profile plugins build && docker compose up --build` builds three plugin images. The registry lists Subfinder, dnsx and httpx with version, risk, trust and image digest. `/app/plugins` shows them from the API, not from mocks.
 2. An admin adds a domain they own to scope with an authorization note. Then they can run Subfinder against it from `/app/plugins/projectdiscovery.subfinder`. Events appear live, and the run ends `SUCCEEDED`.
 3. These attempts are refused with a clear message:
    - a target outside scope;
