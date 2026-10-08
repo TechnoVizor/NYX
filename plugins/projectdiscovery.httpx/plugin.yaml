@@ -1,0 +1,34 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.httpx
+  name: httpx
+  publisher: ProjectDiscovery
+  version: 1.12.0
+  license: MIT
+  description: "Probes a host over HTTP(S) and records what answers: status, title, server, technologies."
+runtime:
+  type: oci
+  image: nyx-plugin/httpx:1.12.0
+classification:
+  categories: [discovery, web]
+  risk_level: safe_active
+  trust_level: verified
+io:
+  accepts: [domain, url]
+  produces: [asset, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 256
+  timeout_seconds: 300
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 10
+config_schema:
+  type: object
+  properties: {}

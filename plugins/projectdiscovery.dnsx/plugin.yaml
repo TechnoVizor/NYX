@@ -1,0 +1,34 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.dnsx
+  name: dnsx
+  publisher: ProjectDiscovery
+  version: 1.3.1
+  license: MIT
+  description: "Resolves a domain's A and AAAA records. Asks public resolvers, not the target."
+runtime:
+  type: oci
+  image: nyx-plugin/dnsx:1.3.1
+classification:
+  categories: [discovery, dns]
+  risk_level: passive
+  trust_level: verified
+io:
+  accepts: [domain]
+  produces: [asset, relation, log, progress]
+resources:
+  cpu: 0.5
+  memory_mb: 128
+  timeout_seconds: 120
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 50
+config_schema:
+  type: object
+  properties: {}

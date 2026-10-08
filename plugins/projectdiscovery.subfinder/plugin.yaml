@@ -1,0 +1,34 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.subfinder
+  name: Subfinder
+  publisher: ProjectDiscovery
+  version: 2.16.0
+  license: MIT
+  description: "Finds subdomains from public sources (certificate logs, DNS datasets, search engines). Never touches the target."
+runtime:
+  type: oci
+  image: nyx-plugin/subfinder:2.16.0
+classification:
+  categories: [discovery]
+  risk_level: passive
+  trust_level: verified
+io:
+  accepts: [domain]
+  produces: [asset, relation, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 256
+  timeout_seconds: 300
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 20
+config_schema:
+  type: object
+  properties: {}

@@ -1,7 +1,6 @@
 import shutil
 from pathlib import Path
 
-import pytest
 import yaml
 
 from app.db import SessionLocal
@@ -66,7 +65,6 @@ def test_admin_can_disable_plugin_analyst_cannot(tmp_path, runner, client, admin
     assert client.get("/api/v1/plugins/nope.nope").status_code == 404
 
 
-@pytest.mark.skipif(not list(REPO.glob("projectdiscovery.*/plugin.yaml")), reason="plugins land in Task 6")
 def test_repo_manifests_are_valid():
     from app.contract import load_manifest, validate_manifest
 
