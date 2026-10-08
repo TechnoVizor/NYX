@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { PageHeader } from "@/components/shared/page-header";
+import { PluginsTable } from "@/components/plugins/plugins-table";
 
 export const metadata: Metadata = { title: "Plugins" };
 
 export default function Page() {
-  return <PlaceholderPage title="Plugins" description="Plugin registry: installed, available and updates." route="/app/plugins" />;
+  return (
+    <>
+      <PageHeader title="Plugins" description="Every scanner I can run, pinned to an exact image. Each one runs in its own locked-down container." />
+      <PluginsTable />
+    </>
+  );
 }

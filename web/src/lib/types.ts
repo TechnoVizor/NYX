@@ -30,17 +30,35 @@ export type Scan = {
   findings: number;
 };
 
-export type Plugin = {
-  slug: string;
-  name: string;
-  publisher: string;
-  description: string;
-  category: string;
-  tier: "verified" | "community";
-  risk: "passive" | "active";
-  state: "installed" | "update" | "available";
-  version: string;
+export type RiskLevel = "passive" | "safe_active" | "active" | "intrusive";
+export type TargetType = "domain" | "ip" | "cidr" | "url";
+export type Target = { type: TargetType; value: string };
+
+export type PluginSummary = {
+  id: string; name: string; publisher: string; description: string; categories: string[];
+  risk_level: RiskLevel; trust_level: "verified" | "community" | "custom";
+  version: string; image: string; digest: string | null; enabled: boolean; updated_at: string;
 };
+
+export type RunStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "TIMED_OUT";
+export type PluginRun = {
+  id: string; plugin_id: string; plugin_version: string; target: Target; status: RunStatus;
+  error: string | null; exit_code: number | null; event_count: number;
+  created_at: string; started_at: string | null; finished_at: string | null;
+};
+
+export type PluginManifest = {
+  io: { accepts: TargetType[]; produces: string[] };
+  resources: { cpu: number; memory_mb: number; timeout_seconds: number };
+  permissions: Record<string, string | boolean>;
+  limits: { default_rate_limit: number };
+};
+export type PluginDetail = PluginSummary & { manifest: PluginManifest; runs: PluginRun[] };
+
+export type PluginEvent = { seq: number; type: string; valid: boolean; payload: { data?: Record<string, unknown>; raw?: string } };
+
+export type ScopeEntry = { id: string; kind: "domain" | "cidr"; value: string; active_allowed: boolean; authorization: string; created_at: string };
+export type ScopeInput = Omit<ScopeEntry, "id" | "created_at">;
 
 export type User = { id: string; email: string; role: "admin" | "analyst" | "viewer"; created_at: string };
 export type Credentials = { email: string; password: string };

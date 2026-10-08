@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { ScopeManager } from "@/components/scope/scope-manager";
 
-export const metadata: Metadata = { title: "Settings: Policies" };
+export const metadata: Metadata = { title: "Settings: Scope" };
 
 export default function Page() {
-  return <PlaceholderPage title="Settings: Policies" description="Workspace configuration." route="/app/settings/policies" />;
+  return <ScopeManager />;
 }

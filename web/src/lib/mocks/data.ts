@@ -1,4 +1,4 @@
-import type { Finding, Plugin, Scan } from "@/lib/types";
+import type { Finding, Scan } from "@/lib/types";
 
 // Seed data lifted from the design prototype. Replaced by the FastAPI backend later.
 export const findings: Finding[] = [
@@ -11,10 +11,4 @@ export const findings: Finding[] = [
 export const scans: Scan[] = [
   { id: "scan-0010", target: "acme.io", profile: "Balanced", status: "running", startedAt: "2026-10-03T08:12:00Z", durationSec: 412, pluginsRun: 6, pluginsTotal: 10, assets: 143, findings: 14 },
   { id: "scan-0009", target: "acme.io", profile: "Balanced", status: "completed", startedAt: "2026-09-30T08:00:00Z", durationSec: 1180, pluginsRun: 8, pluginsTotal: 10, assets: 116, findings: 11 },
-];
-
-export const plugins: Plugin[] = [
-  { slug: "subfinder", name: "Subfinder", publisher: "ProjectDiscovery", description: "Passive subdomain discovery.", category: "Discovery", tier: "verified", risk: "passive", state: "installed", version: "2.6.6" },
-  { slug: "httpx", name: "httpx", publisher: "ProjectDiscovery", description: "HTTP probing and fingerprinting.", category: "Discovery", tier: "verified", risk: "active", state: "installed", version: "1.6.0" },
-  { slug: "nuclei", name: "Nuclei", publisher: "ProjectDiscovery", description: "Template-based vulnerability checks.", category: "Vulnerability", tier: "verified", risk: "active", state: "update", version: "3.2.4" },
 ];

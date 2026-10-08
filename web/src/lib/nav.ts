@@ -48,7 +48,7 @@ export const navGroups: NavGroup[] = [
 export const settingsTabs = [
   { label: "Workspace", href: "/app/settings/workspace" },
   { label: "Credentials", href: "/app/settings/credentials" },
-  { label: "Policies", href: "/app/settings/policies" },
+  { label: "Scope", href: "/app/settings/policies" },
   { label: "AI", href: "/app/settings/ai" },
   { label: "Resources", href: "/app/settings/resources" },
   { label: "System", href: "/app/settings/system" },
