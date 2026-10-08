@@ -1,12 +1,24 @@
-import pytest
-from alembic.config import Config
-from fastapi.testclient import TestClient
-from sqlalchemy import text
+import os
 
-from alembic import command
-from app.config import settings
-from app.db import engine
-from app.main import app
+from sqlalchemy import create_engine, make_url, text
+
+# Tests truncate tables, so they get their own database next to the real one: nyx -> nyx_test.
+_url = make_url(os.environ.get("NYX_DATABASE_URL", "postgresql+psycopg://nyx:nyx@127.0.0.1:5432/nyx"))
+if not _url.database.endswith("_test"):
+    _url = _url.set(database=f"{_url.database}_test")
+os.environ["NYX_DATABASE_URL"] = _url.render_as_string(hide_password=False)
+with create_engine(_url.set(database="postgres"), isolation_level="AUTOCOMMIT").connect() as _c:
+    if not _c.scalar(text("select 1 from pg_database where datname = :n"), {"n": _url.database}):
+        _c.execute(text(f'create database "{_url.database}"'))
+
+import pytest  # noqa: E402
+from alembic.config import Config  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from alembic import command  # noqa: E402
+from app.config import settings  # noqa: E402
+from app.db import engine  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
