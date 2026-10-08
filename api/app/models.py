@@ -1,7 +1,18 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, LargeBinary, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -80,3 +91,35 @@ class PluginInstallation(Base):
     plugin_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plugin_versions.id", ondelete="CASCADE"))
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+
+RUN_STATUSES = ("PENDING", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT")
+
+
+class PluginRun(Base):
+    __tablename__ = "plugin_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    plugin_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("plugin_versions.id", ondelete="CASCADE"), index=True
+    )
+    target: Mapped[dict] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(12), default="PENDING")
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    exit_code: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text)
+    event_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class PluginEvent(Base):
+    __tablename__ = "plugin_events"
+
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plugin_runs.id", ondelete="CASCADE"), primary_key=True)
+    seq: Mapped[int] = mapped_column(Integer, primary_key=True)
+    type: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict] = mapped_column(JSONB)
+    valid: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

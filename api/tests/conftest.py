@@ -30,7 +30,9 @@ def migrated():
 def clean(monkeypatch):
     with engine.begin() as c:
         c.execute(
-            text("truncate users, sessions, scope_targets, plugins, plugin_versions, plugin_installations cascade")
+            text(
+                "truncate users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, plugin_runs, plugin_events cascade"
+            )
         )
     monkeypatch.setattr(settings, "allow_signup", False)
 
