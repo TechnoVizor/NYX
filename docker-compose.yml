@@ -1,0 +1,20 @@
+# docker compose up --build    web -> http://localhost:3001, api -> http://localhost:8000
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nyx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nyx}
+      POSTGRES_DB: nyx
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nyx -d nyx"]
+      interval: 3s
+      retries: 20
+
+volumes:
+  pgdata:
