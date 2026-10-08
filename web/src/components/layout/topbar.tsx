@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Search } from "lucide-react";
@@ -13,13 +13,20 @@ export function Topbar() {
   const { data: me, error } = useMe();
   const router = useRouter();
   const qc = useQueryClient();
+  const [signOutErr, setSignOutErr] = useState("");
 
   useEffect(() => {
     if (error instanceof ApiError && error.status === 401) router.replace("/login");
   }, [error, router]);
 
   const signOut = async () => {
-    await api.logout().catch(() => {});
+    // Leaving the page while the server still holds the session would only look like signing out.
+    try {
+      await api.logout();
+    } catch (x) {
+      setSignOutErr(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
+      return;
+    }
     qc.clear();
     router.replace("/login");
   };
@@ -36,7 +43,7 @@ export function Topbar() {
         <kbd className="kbd">Ctrl K</kbd>
       </button>
       <div className="ml-auto flex items-center gap-3 text-xs text-subtle">
-        {me && <span className="hidden sm:inline">{me.email} · {me.role}</span>}
+        {signOutErr ? <span role="alert" className="text-sev-critical">{signOutErr}</span> : me && <span className="hidden sm:inline">{me.email} · {me.role}</span>}
         <button type="button" onClick={signOut} className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 transition-colors hover:border-border-strong hover:text-muted-foreground">
           <LogOut className="size-3.5" />Sign out
         </button>

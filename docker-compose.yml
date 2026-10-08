@@ -28,6 +28,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 5s
+      retries: 20
 
   web:
     build:
@@ -36,10 +40,12 @@ services:
         API_URL: http://api:8000
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     restart: unless-stopped
+    # Local only: the first account becomes admin. See README "Putting me on a server" before exposing it.
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

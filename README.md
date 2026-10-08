@@ -2,7 +2,7 @@
   <img src=".github/assets/banner.png" alt="NYX" width="100%">
 </p>
 
-<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.</p>
+<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.<br><sub>Early days: the platform core runs today, the scan engine is being built. See the <a href="#roadmap">roadmap</a>.</sub></p>
 
 <p align="center">
   <a href="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml"><img src="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -61,7 +61,7 @@ These are the rules I'm being built on. They are design constraints, not marketi
 ```mermaid
 flowchart LR
   user([You]) --> web["web · Next.js<br/>workspace UI"]
-  web -- "/api/*" --> api["api · FastAPI<br/>auth, registries"]
+  web -- "/api/*" --> api["api · FastAPI<br/>accounts, sessions"]
   api --> pg[(PostgreSQL)]
   api -. planned .-> temporal["Temporal<br/>durable scans"]
   temporal -. planned .-> workers["plugin workers<br/>sandboxed containers"]
@@ -83,16 +83,31 @@ docker compose up --build
 
 Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API lives on <http://localhost:8000> with docs at `/docs`.
 
+Everything listens on `127.0.0.1` only, on purpose.
+
+<details>
+<summary>Putting me on a server</summary>
+
+1. Start me locally on the server and create the admin account first (an SSH tunnel to port 3001 works), so nobody else can claim it.
+2. Put a TLS reverse proxy (Caddy, nginx) in front of `127.0.0.1:3001`.
+3. Set `NYX_COOKIE_SECURE=true` so the session cookie only travels over HTTPS.
+4. Use a strong `POSTGRES_PASSWORD`. Stick to letters and digits: it goes into a database URL.
+</details>
+
 <details>
 <summary>Developing without containers</summary>
 
 ```bash
 docker compose up -d postgres
+
+# terminal 1
 cd api && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8000
+
+# terminal 2
 cd web && pnpm install && pnpm dev --port 3001
 ```
 
-Tests: `cd api && uv run pytest`. Lint: `uv run ruff check .`, `pnpm lint`.
+Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your accounts are safe). Lint: `uv run ruff check .`, `pnpm lint`.
 </details>
 
 ## Repository map
@@ -100,7 +115,7 @@ Tests: `cd api && uv run pytest`. Lint: `uv run ruff check .`, `pnpm lint`.
 | Path | What lives there |
 |---|---|
 | `api/` | FastAPI service: accounts, sessions, roles. Migrations in `api/alembic`. |
-| `web/` | The workspace UI: sign-in, dashboard, scans, findings, settings. |
+| `web/` | The workspace UI: sign-in and the workspace shell. Scans, findings and settings are placeholders on mock data for now. |
 | `docs/` | Design specs and implementation plans. |
 | `scripts/` | Tools that build the images in this README. |
 
