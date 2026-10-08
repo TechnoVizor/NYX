@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 168
     # Repo root /plugins locally (api/app/config.py -> parents[2]); /plugins inside the API image.
     plugins_dir: str = str(Path(__file__).resolve().parents[2] / "plugins")
+    runner_url: str = "http://127.0.0.1:8100"
+    runner_token: str = ""
 
 
 settings = Settings()

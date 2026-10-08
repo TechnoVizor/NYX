@@ -29,7 +29,9 @@ def migrated():
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
     with engine.begin() as c:
-        c.execute(text("truncate users, sessions, scope_targets cascade"))
+        c.execute(
+            text("truncate users, sessions, scope_targets, plugins, plugin_versions, plugin_installations cascade")
+        )
     monkeypatch.setattr(settings, "allow_signup", False)
 
 
@@ -43,3 +45,32 @@ def admin(client):
     r = client.post("/api/v1/auth/signup", json={"email": "admin@example.com", "password": "correct horse"})
     assert r.status_code == 201
     return r.json()
+
+
+class StubRunner:
+    """Stands in for nyx-runner: digests per image, and canned output lines per run."""
+
+    def __init__(self, digests=None, lines=None, error=None):
+        self.digests = digests or {}
+        self.lines = lines or []
+        self.error = error
+        self.calls = []
+
+    def digest(self, image):
+        return self.digests.get(image)
+
+    def run(self, body):
+        self.calls.append(body)
+        if self.error:
+            raise self.error
+        yield from (line(body) if callable(line) else line for line in self.lines)
+
+
+@pytest.fixture
+def runner():
+    from app.runner import get_runner
+
+    stub = StubRunner()
+    app.dependency_overrides[get_runner] = lambda: stub
+    yield stub
+    app.dependency_overrides.pop(get_runner, None)
