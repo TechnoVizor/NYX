@@ -2,7 +2,7 @@
   <img src=".github/assets/banner.png" alt="NYX" width="100%">
 </p>
 
-<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.<br><sub>Early days: the platform core runs today, the scan engine is being built. See the <a href="#roadmap">roadmap</a>.</sub></p>
+<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.<br><sub>Early days: the platform core and my first plugins run today; full scans are being built. See the <a href="#roadmap">roadmap</a>.</sub></p>
 
 <p align="center">
   <a href="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml"><img src="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -46,7 +46,7 @@ Every scan is a short story. Here's one, step by step.
 | <img src=".github/assets/steps/correlate.jpg" width="200"> | **Correlate.** Hosts, services, certificates and findings go into one graph, so you see how things connect. |
 | <img src=".github/assets/steps/report.jpg" width="200"> | **Report.** You get a report you can rerun and check: same inputs, same evidence, same conclusions. |
 
-> This is where I'm headed. Right now the platform core is in place — accounts, the API and the workspace UI. The scan engine is next; see the [roadmap](#roadmap).
+> This is where I'm headed. Today I can run Subfinder, dnsx and httpx one at a time, each in its own locked-down container, and only against targets in your scope. Chaining them into a full scan is next; see the [roadmap](#roadmap).
 
 ## What I refuse to do
 
@@ -54,6 +54,7 @@ These are the rules I'm being built on. They are design constraints, not marketi
 
 - **Scan what you don't own.** Targets go through a scope registry first. Out of scope means refused, not "warned".
 - **Let plugins wander.** Every scanner runs in its own box: rootless runtime, no Docker or Podman socket, read-only filesystem, network limited to your scope, per-target rate limits, no database credentials.
+  Today: read-only, non-root, no capabilities, CPU/RAM/process limits, a time limit, no route to the database. Next: network egress limited to your scope.
 - **Make things up.** Risk comes from evidence and vulnerability data, not from a language model's mood. AI helps me sort and explain; it never invents a finding.
 
 ## How I'm built
@@ -61,12 +62,13 @@ These are the rules I'm being built on. They are design constraints, not marketi
 ```mermaid
 flowchart LR
   user(["You"]) --> web["web · Next.js<br/>workspace UI"]
-  web -- "/api/*" --> api["api · FastAPI<br/>accounts, sessions"]
+  web -- "/api/*" --> api["api · FastAPI<br/>accounts, scope, plugin registry"]
   api --> pg[("PostgreSQL")]
+  api --> runner["runner<br/>the only piece with Docker"]
+  runner --> plugins["plugin containers<br/>read-only, no root, no DB"]
   api -. planned .-> temporal["Temporal<br/>durable scans"]
-  temporal -. planned .-> workers["plugin workers<br/>sandboxed containers"]
-  workers -. planned .-> minio[("MinIO<br/>raw evidence")]
-  workers -. planned .-> memgraph[("Memgraph<br/>entity graph")]
+  plugins -. planned .-> minio[("MinIO<br/>raw evidence")]
+  api -. planned .-> memgraph[("Memgraph<br/>entity graph")]
 ```
 
 Solid lines run today. Dotted lines are the next phases.
@@ -78,10 +80,13 @@ You need Docker.
 ```bash
 git clone https://github.com/TechnoVizor/NYX.git
 cd NYX
+docker compose --profile plugins build   # my scanners: Subfinder, dnsx, httpx
 docker compose up --build
 ```
 
 Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API lives on <http://localhost:8000> with docs at `/docs`.
+
+Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test`: add `nyx-lab.test` to scope with active scanning allowed and point httpx at it.
 
 Everything listens on `127.0.0.1` only, on purpose.
 
@@ -92,6 +97,7 @@ Everything listens on `127.0.0.1` only, on purpose.
 2. Put a TLS reverse proxy (Caddy, nginx) in front of `127.0.0.1:3001`.
 3. Set `NYX_COOKIE_SECURE=true` so the session cookie only travels over HTTPS.
 4. Use a strong `POSTGRES_PASSWORD`. Stick to letters and digits: it goes into a database URL.
+5. Set `NYX_RUNNER_TOKEN` to a long random value.
 </details>
 
 <details>
@@ -110,6 +116,10 @@ cd web && pnpm install && pnpm dev --port 3001
 Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your accounts are safe). Lint: `uv run ruff check .`, `pnpm lint`.
 </details>
 
+## Teach me a new scanner
+
+Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, what it produces, how risky it is, how much CPU and memory it gets), and turn its JSON output into events in `adapter.py`. `api/tests/test_adapters.py` shows how to test it offline against a recorded fixture.
+
 ## Repository map
 
 | Path | What lives there |
@@ -117,13 +127,15 @@ Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your 
 | `api/` | FastAPI service: accounts, sessions, roles. Migrations in `api/alembic`. |
 | `web/` | The workspace UI: sign-in and the workspace shell. Scans, findings and settings are placeholders on mock data for now. |
 | `docs/` | Design specs and implementation plans. |
+| `plugins/` | The plugin contract (JSON Schemas), the one-file SDK, a template, and Subfinder, dnsx, httpx. |
+| `runner/` | The only service with Docker access: starts each plugin in a locked-down container. |
 | `scripts/` | Tools that build the images in this README. |
 
 ## Roadmap
 
 - [x] **1. Core platform** — monorepo, FastAPI, PostgreSQL, accounts and roles, Docker Compose, CI
-- [ ] **2. Plugin specification** — manifest schema, canonical events, plugin registry, first three plugins
-- [ ] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause
+- [x] **2. Plugin specification** — manifest schema, canonical events, plugin registry, first three plugins
+- [ ] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause, network egress limited to scope
 - [ ] **4. Default plugin set** — Subfinder, dnsx, httpx, Nuclei and friends
 - [ ] **5. Evidence and graph** — immutable hash-addressed evidence in MinIO, entity graph in Memgraph
 - [ ] **6. Adaptive planner** — decide the next tool from what the last one found
