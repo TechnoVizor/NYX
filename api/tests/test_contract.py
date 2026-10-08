@@ -43,6 +43,9 @@ def test_template_manifest_is_valid():
         (("io", "accepts"), ["email"]),
         (("api_version",), "platform.security/v2"),
         (("runtime", "image"), "nyx-plugin/template:latest"),
+        (("metadata", "id"), "a." + "b" * 200),
+        (("metadata", "version"), "1.2." + "3" * 60),
+        (("runtime", "image"), "nyx-plugin/" + "t" * 200 + ":1"),
     ],
 )
 def test_manifest_rejects_unsafe_or_unknown_values(path, value):

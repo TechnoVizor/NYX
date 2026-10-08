@@ -3,80 +3,232 @@
   "$id": "https://github.com/TechnoVizor/NYX/plugins/schemas/manifest.schema.json",
   "title": "NYX plugin manifest",
   "type": "object",
-  "required": ["api_version", "kind", "metadata", "runtime", "classification", "io", "resources", "permissions", "limits", "config_schema"],
+  "required": [
+    "api_version",
+    "kind",
+    "metadata",
+    "runtime",
+    "classification",
+    "io",
+    "resources",
+    "permissions",
+    "limits",
+    "config_schema"
+  ],
   "additionalProperties": false,
   "properties": {
-    "api_version": { "const": "platform.security/v1" },
-    "kind": { "const": "ScannerPlugin" },
+    "api_version": {
+      "const": "platform.security/v1"
+    },
+    "kind": {
+      "const": "ScannerPlugin"
+    },
     "metadata": {
       "type": "object",
-      "required": ["id", "name", "publisher", "version", "license", "description"],
+      "required": [
+        "id",
+        "name",
+        "publisher",
+        "version",
+        "license",
+        "description"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9-]+\\.[a-z0-9-]+$" },
-        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "publisher": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-        "license": { "type": "string" },
-        "description": { "type": "string", "maxLength": 400 }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+\\.[a-z0-9-]+$",
+          "maxLength": 120
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "maxLength": 40
+        },
+        "license": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 400
+        }
       }
     },
     "runtime": {
       "type": "object",
-      "required": ["type", "image"],
+      "required": [
+        "type",
+        "image"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "const": "oci" },
-        "image": { "type": "string", "pattern": "^[a-z0-9./_-]+:[A-Za-z0-9._-]+$", "not": { "pattern": ":latest$" } }
+        "type": {
+          "const": "oci"
+        },
+        "image": {
+          "type": "string",
+          "pattern": "^[a-z0-9./_-]+:[A-Za-z0-9._-]+$",
+          "not": {
+            "pattern": ":latest$"
+          },
+          "maxLength": 200
+        }
       }
     },
     "classification": {
       "type": "object",
-      "required": ["categories", "risk_level", "trust_level"],
+      "required": [
+        "categories",
+        "risk_level",
+        "trust_level"
+      ],
       "additionalProperties": false,
       "properties": {
-        "categories": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "risk_level": { "enum": ["passive", "safe_active", "active", "intrusive"] },
-        "trust_level": { "enum": ["verified", "community", "custom"] }
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "risk_level": {
+          "enum": [
+            "passive",
+            "safe_active",
+            "active",
+            "intrusive"
+          ]
+        },
+        "trust_level": {
+          "enum": [
+            "verified",
+            "community",
+            "custom"
+          ]
+        }
       }
     },
     "io": {
       "type": "object",
-      "required": ["accepts", "produces"],
+      "required": [
+        "accepts",
+        "produces"
+      ],
       "additionalProperties": false,
       "properties": {
-        "accepts": { "type": "array", "minItems": 1, "items": { "enum": ["domain", "ip", "cidr", "url"] } },
-        "produces": { "type": "array", "minItems": 1, "items": { "enum": ["asset", "relation", "finding", "evidence", "metric", "log", "progress", "artifact"] } }
+        "accepts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "domain",
+              "ip",
+              "cidr",
+              "url"
+            ]
+          }
+        },
+        "produces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "asset",
+              "relation",
+              "finding",
+              "evidence",
+              "metric",
+              "log",
+              "progress",
+              "artifact"
+            ]
+          }
+        }
       }
     },
     "resources": {
       "type": "object",
-      "required": ["cpu", "memory_mb", "timeout_seconds"],
+      "required": [
+        "cpu",
+        "memory_mb",
+        "timeout_seconds"
+      ],
       "additionalProperties": false,
       "properties": {
-        "cpu": { "type": "number", "exclusiveMinimum": 0, "maximum": 4 },
-        "memory_mb": { "type": "integer", "minimum": 32, "maximum": 4096 },
-        "timeout_seconds": { "type": "integer", "minimum": 5, "maximum": 3600 }
+        "cpu": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 4096
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 3600
+        }
       }
     },
     "permissions": {
       "type": "object",
-      "required": ["network", "filesystem", "raw_socket", "host_mounts", "docker_socket"],
+      "required": [
+        "network",
+        "filesystem",
+        "raw_socket",
+        "host_mounts",
+        "docker_socket"
+      ],
       "additionalProperties": false,
       "properties": {
-        "network": { "enum": ["none", "target_scope"] },
-        "filesystem": { "const": "temporary" },
-        "raw_socket": { "const": false },
-        "host_mounts": { "const": false },
-        "docker_socket": { "const": false }
+        "network": {
+          "enum": [
+            "none",
+            "target_scope"
+          ]
+        },
+        "filesystem": {
+          "const": "temporary"
+        },
+        "raw_socket": {
+          "const": false
+        },
+        "host_mounts": {
+          "const": false
+        },
+        "docker_socket": {
+          "const": false
+        }
       }
     },
     "limits": {
       "type": "object",
-      "required": ["default_rate_limit"],
+      "required": [
+        "default_rate_limit"
+      ],
       "additionalProperties": false,
-      "properties": { "default_rate_limit": { "type": "integer", "minimum": 1, "maximum": 1000 } }
+      "properties": {
+        "default_rate_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
     },
-    "config_schema": { "type": "object" }
+    "config_schema": {
+      "type": "object"
+    }
   }
 }
