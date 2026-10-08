@@ -16,5 +16,30 @@ services:
       interval: 3s
       retries: 20
 
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      NYX_DATABASE_URL: postgresql+psycopg://nyx:${POSTGRES_PASSWORD:-nyx}@postgres:5432/nyx
+      NYX_ALLOW_SIGNUP: ${NYX_ALLOW_SIGNUP:-false}
+      NYX_COOKIE_SECURE: ${NYX_COOKIE_SECURE:-false}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      args:
+        API_URL: http://api:8000
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+
 volumes:
   pgdata:

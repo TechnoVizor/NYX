@@ -4,23 +4,16 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
-
-FROM base AS dev
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
-EXPOSE 3000
-CMD ["pnpm", "dev", "--hostname", "0.0.0.0"]
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Baked into the build: metadata, sitemap and robots are rendered statically.
-ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_ALLOW_INDEXING
-ENV NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_ALLOW_INDEXING=$NEXT_PUBLIC_ALLOW_INDEXING
+# Baked into the build: the /api rewrite target and the link back to the marketing site.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG API_URL=http://api:8000
+ENV NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL API_URL=$API_URL
 RUN pnpm build
 
 FROM node:22-alpine AS runner
