@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     plugins_dir: str = str(Path(__file__).resolve().parents[2] / "plugins")
     runner_url: str = "http://127.0.0.1:8100"
     runner_token: str = ""
+    max_events_per_run: int = 200_000
 
 
 settings = Settings()

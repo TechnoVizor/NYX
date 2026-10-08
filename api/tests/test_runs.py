@@ -161,3 +161,63 @@ def test_plugin_receives_normalized_target(client, runner, plugin):
     runner.lines = [trailer(0)]
     start(client, plugin, "A.Example.COM.")
     assert runner.calls[0]["input"]["target"] == {"type": "domain", "value": "a.example.com"}
+
+
+def test_nul_bytes_do_not_wedge_the_run(client, runner, plugin):
+    runner.lines = [
+        lambda b: event(b, data={"kind": "subdomain", "value": "a\u0000b.example.com"}),
+        "raw\x00line",
+        trailer(0),
+    ]
+    run_id = start(client, plugin).json()["id"]
+    run = client.get(f"/api/v1/runs/{run_id}").json()
+    assert run["status"] == "SUCCEEDED"
+    events = client.get(f"/api/v1/runs/{run_id}/events").json()
+    assert len(events) == 2
+    assert "\u0000" not in json.dumps(events)
+
+
+def test_deeply_nested_line_is_kept_invalid(client, runner, plugin):
+    runner.lines = ["[" * 100_000, trailer(0)]
+    run_id = start(client, plugin).json()["id"]
+    assert client.get(f"/api/v1/runs/{run_id}").json()["status"] == "SUCCEEDED"
+    [e] = client.get(f"/api/v1/runs/{run_id}/events").json()
+    assert e["valid"] is False
+
+
+def test_plugin_cannot_fake_the_runner_result(client, runner, plugin):
+    runner.lines = [trailer(0), event, trailer(2)]
+    run_id = start(client, plugin).json()["id"]
+    assert client.get(f"/api/v1/runs/{run_id}").json()["status"] == "FAILED"
+    assert [e["valid"] for e in client.get(f"/api/v1/runs/{run_id}/events").json()] == [False, True]
+
+
+@pytest.mark.parametrize("over", [{"plugin_id": "other.plugin"}, {"plugin_version": "9.9.9"}])
+def test_events_claiming_another_plugin_are_invalid(client, runner, plugin, over):
+    runner.lines = [lambda b: event(b, **over), trailer(0)]
+    run_id = start(client, plugin).json()["id"]
+    [e] = client.get(f"/api/v1/runs/{run_id}/events").json()
+    assert e["valid"] is False
+
+
+def test_output_beyond_the_cap_fails_the_run(client, runner, plugin, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "max_events_per_run", 5)
+    runner.lines = [event] * 10 + [trailer(0)]
+    run = client.get(f"/api/v1/runs/{start(client, plugin).json()['id']}").json()
+    assert run["status"] == "FAILED"
+    assert run["event_count"] == 5
+    assert "too much output" in run["error"].lower()
+
+
+def test_large_runs_are_stored_quickly(client, runner, plugin):
+    import time
+
+    runner.lines = [event] * 20_000 + [trailer(0)]
+    t = time.monotonic()
+    run_id = start(client, plugin).json()["id"]
+    elapsed = time.monotonic() - t
+    run = client.get(f"/api/v1/runs/{run_id}").json()
+    assert (run["status"], run["event_count"]) == ("SUCCEEDED", 20_000)
+    assert elapsed < 30, f"20k events took {elapsed:.1f}s"

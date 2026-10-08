@@ -132,7 +132,7 @@ def test_scope_requires_sign_in():
         ("url", "http://a.example.com/\r\nevil.net"),
         ("url", "http://a.example.com\tevil.net"),
         ("domain", "a.example.com\nevil.net"),
-        ("url", "http://evil.net\@a.example.com"),
+        ("url", r"http://evil.net\@a.example.com"),
         ("url", "http://evil.net@a.example.com"),
         ("domain", "a.example.com\x00"),
     ],
