@@ -119,8 +119,6 @@ Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your 
 | `docs/` | Design specs and implementation plans. |
 | `scripts/` | Tools that build the images in this README. |
 
-The marketing site lives in [TechnoVizor/NYX-project](https://github.com/TechnoVizor/NYX-project).
-
 ## Roadmap
 
 - [x] **1. Core platform** — monorepo, FastAPI, PostgreSQL, accounts and roles, Docker Compose, CI
