@@ -29,7 +29,7 @@ def migrated():
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
     with engine.begin() as c:
-        c.execute(text("truncate users, sessions cascade"))
+        c.execute(text("truncate users, sessions, scope_targets cascade"))
     monkeypatch.setattr(settings, "allow_signup", False)
 
 
