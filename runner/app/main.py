@@ -3,6 +3,7 @@
 import json
 import secrets
 import threading
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 import docker
@@ -22,7 +23,18 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-app = FastAPI(title="NYX runner", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    try:
+        ensure_network(docker.from_env())
+    except docker.errors.DockerException:
+        pass  # no Docker yet; start() creates the network on the first run
+    yield
+
+
+app = FastAPI(title="NYX runner", version="0.1.0", lifespan=lifespan)
 slots = threading.BoundedSemaphore(settings.max_runs)
 EXTRA_ENV: dict = {}  # tests only
 

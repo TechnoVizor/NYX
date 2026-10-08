@@ -17,17 +17,23 @@ services:
       retries: 20
 
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: api/Dockerfile
     restart: unless-stopped
     environment:
       NYX_DATABASE_URL: postgresql+psycopg://nyx:${POSTGRES_PASSWORD:-nyx}@postgres:5432/nyx
       NYX_ALLOW_SIGNUP: ${NYX_ALLOW_SIGNUP:-false}
       NYX_COOKIE_SECURE: ${NYX_COOKIE_SECURE:-false}
+      NYX_RUNNER_URL: http://runner:8100
+      NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      runner:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 5s
@@ -47,5 +53,43 @@ services:
       api:
         condition: service_healthy
 
+  runner:
+    build: ./runner
+    restart: unless-stopped
+    environment:
+      NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # No ports: only the API talks to it, over the compose network.
+
+  plugin-subfinder:
+    profiles: ["plugins"]
+    image: nyx-plugin/subfinder:2.16.0
+    build: {context: ./plugins, dockerfile: projectdiscovery.subfinder/Dockerfile}
+
+  plugin-dnsx:
+    profiles: ["plugins"]
+    image: nyx-plugin/dnsx:1.3.1
+    build: {context: ./plugins, dockerfile: projectdiscovery.dnsx/Dockerfile}
+
+  plugin-httpx:
+    profiles: ["plugins"]
+    image: nyx-plugin/httpx:1.12.0
+    build: {context: ./plugins, dockerfile: projectdiscovery.httpx/Dockerfile}
+
+  testbed:
+    # Local lab target for safe_active plugins: add scope "nyx-lab.test" (active allowed), run httpx on testbed.nyx-lab.test.
+    profiles: ["lab"]
+    image: nginx:1.27-alpine
+    networks:
+      nyx-plugins:
+        aliases: [testbed.nyx-lab.test]
+
 volumes:
   pgdata:
+
+networks:
+  # Created by the runner at startup (it also checks before every run), so it exists whether or not compose made it.
+  nyx-plugins:
+    name: nyx-plugins
+    external: true
