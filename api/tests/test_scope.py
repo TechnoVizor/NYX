@@ -123,3 +123,31 @@ def test_analyst_reads_but_cannot_write_scope(client, admin, monkeypatch):
 
 def test_scope_requires_sign_in():
     assert TestClient(app).get("/api/v1/scope").status_code == 401
+
+
+@pytest.mark.parametrize(
+    "ttype,value",
+    [
+        ("url", "http://a.example.com/\nhttp://evil.net"),
+        ("url", "http://a.example.com/\r\nevil.net"),
+        ("url", "http://a.example.com\tevil.net"),
+        ("domain", "a.example.com\nevil.net"),
+        ("url", "http://evil.net\@a.example.com"),
+        ("url", "http://evil.net@a.example.com"),
+        ("domain", "a.example.com\x00"),
+    ],
+)
+def test_targets_with_control_chars_or_tricks_match_nothing(ttype, value):
+    assert find_entry(ttype, value, ENTRIES) is None
+
+
+def test_run_target_is_sent_normalized():
+    from app.scope import normalized_target
+
+    assert normalized_target("url", "HTTPS://A.Example.COM:8443/login") == {
+        "type": "url",
+        "value": "HTTPS://A.Example.COM:8443/login",
+    }
+    assert normalized_target("domain", "A.Example.COM.") == {"type": "domain", "value": "a.example.com"}
+    with pytest.raises(ValueError):
+        normalized_target("url", "http://a.example.com/\nhttp://evil.net")

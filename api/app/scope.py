@@ -43,6 +43,12 @@ def normalize_entry(kind: str, value: str) -> str:
 
 def parse_target(type: str, value: str):
     """Return ("domain", name) | ("ip", address) | ("cidr", network). Raise ValueError if it cannot be parsed."""
+    # urlsplit silently drops tab/CR/LF, and tools read newlines as "next target": refuse them outright,
+    # so what is checked here is exactly what the plugin receives.
+    if any(c.isspace() or not c.isprintable() for c in value):
+        raise ValueError("Targets cannot contain spaces, line breaks or control characters.")
+    if type == "url" and ("@" in value or "\\" in value):
+        raise ValueError("URLs with @ or backslashes are refused: they can point somewhere other than they look.")
     if type == "url":
         host = urlsplit(value if "://" in value else f"//{value}").hostname
         if not host:
@@ -58,6 +64,14 @@ def parse_target(type: str, value: str):
     if type == "cidr":
         return "cidr", ipaddress.ip_network(value.strip(), strict=False)
     raise ValueError(f"Unknown target type {type!r}.")
+
+
+def normalized_target(type: str, value: str) -> dict:
+    """The target exactly as the plugin will get it. URLs keep their path; hosts are normalized."""
+    kind, parsed = parse_target(type, value)
+    if type == "url":
+        return {"type": "url", "value": value}
+    return {"type": kind, "value": str(parsed)}
 
 
 def _covers(entry: ScopeLike, kind: str, parsed) -> bool:

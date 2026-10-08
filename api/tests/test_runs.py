@@ -148,3 +148,16 @@ def test_viewer_cannot_start_runs(client, runner, plugin):
         db.query(User).update({"role": "viewer"})
         db.commit()
     assert start(client, plugin).status_code == 403
+
+
+@pytest.mark.parametrize("value", ["http://a.example.com/\nhttp://evil.net", "a.example.com\nevil.net"])
+def test_smuggled_second_target_is_refused(client, runner, plugin, value):
+    r = start(client, plugin, value, type="url" if value.startswith("http") else "domain")
+    assert r.status_code == 422
+    assert runner.calls == []
+
+
+def test_plugin_receives_normalized_target(client, runner, plugin):
+    runner.lines = [trailer(0)]
+    start(client, plugin, "A.Example.COM.")
+    assert runner.calls[0]["input"]["target"] == {"type": "domain", "value": "a.example.com"}

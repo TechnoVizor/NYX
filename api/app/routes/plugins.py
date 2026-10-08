@@ -9,7 +9,7 @@ from app.models import Plugin, PluginInstallation, PluginRun, PluginVersion, Sco
 from app.routes.runs import RunOut, run_out
 from app.runner import RunnerClient, get_runner
 from app.runs import execute_run
-from app.scope import find_entry, refusal
+from app.scope import find_entry, normalized_target, refusal
 from app.security import DB, current_user, require_role
 
 router = APIRouter(prefix="/api/v1/plugins", tags=["plugins"])
@@ -126,12 +126,14 @@ def start_run(
         raise HTTPException(409, f"{p.name}'s image is missing. Build it with: docker compose --profile plugins build")
     if body.target.type not in v.manifest["io"]["accepts"]:
         raise HTTPException(422, f"{p.name} does not accept {body.target.type} targets.")
-    entry = find_entry(body.target.type, body.target.value, db.scalars(select(ScopeTarget)).all())
-    if reason := refusal(p.risk_level, body.target.value, entry):
+    try:
+        target = normalized_target(body.target.type, body.target.value)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
+    entry = find_entry(target["type"], target["value"], db.scalars(select(ScopeTarget)).all())
+    if reason := refusal(p.risk_level, target["value"], entry):
         raise HTTPException(403, reason)
-    run = PluginRun(
-        plugin_version_id=v.id, target=body.target.model_dump(), status="PENDING", requested_by=user.id, event_count=0
-    )
+    run = PluginRun(plugin_version_id=v.id, target=target, status="PENDING", requested_by=user.id, event_count=0)
     db.add(run)
     db.commit()
     background.add_task(execute_run, run.id, runner)
