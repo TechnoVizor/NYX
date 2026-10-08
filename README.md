@@ -60,13 +60,13 @@ These are the rules I'm being built on. They are design constraints, not marketi
 
 ```mermaid
 flowchart LR
-  user([You]) --> web["web · Next.js<br/>workspace UI"]
+  user(["You"]) --> web["web · Next.js<br/>workspace UI"]
   web -- "/api/*" --> api["api · FastAPI<br/>accounts, sessions"]
-  api --> pg[(PostgreSQL)]
+  api --> pg[("PostgreSQL")]
   api -. planned .-> temporal["Temporal<br/>durable scans"]
   temporal -. planned .-> workers["plugin workers<br/>sandboxed containers"]
-  workers -. planned .-> minio[(MinIO<br/>raw evidence)]
-  workers -. planned .-> graph[(Memgraph<br/>entity graph)]
+  workers -. planned .-> minio[("MinIO<br/>raw evidence")]
+  workers -. planned .-> memgraph[("Memgraph<br/>entity graph")]
 ```
 
 Solid lines run today. Dotted lines are the next phases.
