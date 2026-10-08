@@ -24,10 +24,12 @@ export function RunPanel({ plugin }: { plugin: PluginDetail }) {
   const { data: events } = useRunEvents(runId, live(run?.status) || !run);
   const finished = !!run && !live(run.status);
 
-  // Refresh the plugin's "Recent runs" once this run settles, so it does not keep saying RUNNING.
+  // Once the run settles: one last fetch of its events (polling stops with the status) and a fresh "Recent runs".
   useEffect(() => {
-    if (finished) qc.invalidateQueries({ queryKey: ["plugins", plugin.id] });
-  }, [finished, qc, plugin.id]);
+    if (!finished) return;
+    qc.invalidateQueries({ queryKey: ["runs", runId, "events"] });
+    qc.invalidateQueries({ queryKey: ["plugins", plugin.id] });
+  }, [finished, qc, plugin.id, runId]);
 
   const suggestions = useMemo(() => (scope ?? []).filter((s) => s.kind === "domain").map((s) => s.value), [scope]);
 
