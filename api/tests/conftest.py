@@ -20,6 +20,8 @@ from app.config import settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
+TABLES = "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, plugin_runs, plugin_events"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def migrated():
@@ -29,11 +31,7 @@ def migrated():
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
     with engine.begin() as c:
-        c.execute(
-            text(
-                "truncate users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, plugin_runs, plugin_events cascade"
-            )
-        )
+        c.execute(text(f"truncate {TABLES} cascade"))
     monkeypatch.setattr(settings, "allow_signup", False)
 
 
