@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +10,8 @@ class Settings(BaseSettings):
     allow_signup: bool = False
     cookie_secure: bool = False
     session_ttl_hours: int = 168
+    # Repo root /plugins locally (api/app/config.py -> parents[2]); /plugins inside the API image.
+    plugins_dir: str = str(Path(__file__).resolve().parents[2] / "plugins")
 
 
 settings = Settings()

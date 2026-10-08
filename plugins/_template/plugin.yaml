@@ -1,0 +1,35 @@
+# Copy this directory to plugins/<publisher>.<tool>/ and change every field.
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: example.template
+  name: Template
+  publisher: NYX
+  version: 0.1.0
+  license: Apache-2.0
+  description: Starting point for a new plugin. Reads a tool's JSON output and emits NYX events.
+runtime:
+  type: oci
+  image: nyx-plugin/template:0.1.0
+classification:
+  categories: [discovery]
+  risk_level: passive
+  trust_level: custom
+io:
+  accepts: [domain]
+  produces: [asset, log, progress]
+resources:
+  cpu: 0.5
+  memory_mb: 128
+  timeout_seconds: 60
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 10
+config_schema:
+  type: object
+  properties: {}

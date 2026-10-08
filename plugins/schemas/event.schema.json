@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TechnoVizor/NYX/plugins/schemas/event.schema.json",
+  "title": "NYX plugin event (one JSONL line)",
+  "type": "object",
+  "required": ["event_version", "type", "plugin_run_id", "plugin_id", "plugin_version", "timestamp", "target", "data"],
+  "properties": {
+    "event_version": { "const": "1" },
+    "type": { "enum": ["asset", "relation", "finding", "evidence", "metric", "log", "progress", "artifact"] },
+    "scan_id": { "type": "string" },
+    "plugin_run_id": { "type": "string", "minLength": 1 },
+    "plugin_id": { "type": "string", "minLength": 1 },
+    "plugin_version": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "target": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": { "type": { "enum": ["domain", "ip", "cidr", "url"] }, "value": { "type": "string", "minLength": 1 } }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "data": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "asset" } } }, "then": { "properties": { "data": { "required": ["kind", "value"] } } } },
+    { "if": { "properties": { "type": { "const": "relation" } } }, "then": { "properties": { "data": { "required": ["from", "to", "kind"] } } } },
+    { "if": { "properties": { "type": { "const": "log" } } }, "then": { "properties": { "data": { "required": ["level", "message"] } } } },
+    { "if": { "properties": { "type": { "const": "progress" } } }, "then": { "properties": { "data": { "required": ["percent"], "properties": { "percent": { "type": "integer", "minimum": 0, "maximum": 100 } } } } } },
+    { "if": { "properties": { "type": { "const": "metric" } } }, "then": { "properties": { "data": { "required": ["name", "value"] } } } },
+    { "if": { "properties": { "type": { "const": "finding" } } }, "then": { "properties": { "data": { "required": ["title", "severity"] } } } }
+  ]
+}
