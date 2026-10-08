@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
@@ -44,18 +45,34 @@ def run_tool(cmd: list[str], stdin: str | None = None) -> Iterator[dict]:
     fixture = os.environ.get("NYX_FIXTURE")
     if fixture:
         with open(fixture, encoding="utf-8") as f:
-            lines = f.read().splitlines()
-        code, err = 0, ""
-    else:
-        proc = subprocess.run(cmd, input=stdin, capture_output=True, text=True)
-        lines, code, err = proc.stdout.splitlines(), proc.returncode, proc.stderr
+            yield from _parse(f.read().splitlines())
+        return
+    # Stream stdout so events reach the platform while the tool is still working. stderr goes to a file in /tmp
+    # (the only writable place in the sandbox) so a chatty tool cannot block on a full pipe.
+    with tempfile.TemporaryFile("w+") as err:
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=err,
+            text=True,
+        )
+        if stdin is not None:
+            proc.stdin.write(stdin)
+            proc.stdin.close()
+        yield from _parse(proc.stdout)
+        code = proc.wait()
+        if code != 0:
+            err.seek(0)
+            print(err.read()[-4000:], file=sys.stderr)
+            raise SystemExit(code)
+
+
+def _parse(lines) -> Iterator[dict]:
     for line in lines:
         if not line.strip():
             continue
         try:
             yield json.loads(line)
         except json.JSONDecodeError:
-            log(f"Skipped a line the tool printed that is not JSON: {line[:200]}", "warning")
-    if code != 0:
-        print(err[-4000:], file=sys.stderr)
-        raise SystemExit(code)
+            log(f"Skipped a line the tool printed that is not JSON: {line.strip()[:200]}", "warning")

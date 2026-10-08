@@ -101,3 +101,25 @@ def test_sdk_emits_valid_events(tmp_path):
     lines = [json.loads(line) for line in out.stdout.splitlines()]
     assert [e["type"] for e in lines] == ["progress", "asset", "log", "progress"]
     assert all(validate_event(e) == [] for e in lines)
+
+
+def test_sdk_streams_events_while_the_tool_runs(tmp_path):
+    import time
+
+    tool = tmp_path / "slowtool.py"
+    tool.write_text('import json, sys, time\nprint(json.dumps({"host": "a.example.com"}), flush=True)\ntime.sleep(4)\n')
+    adapter = tmp_path / "adapter.py"
+    adapter.write_text(
+        "import sys\nfrom nyx_plugin import emit, run_tool\n"
+        f"for r in run_tool([sys.executable, {str(tool)!r}]):\n"
+        "    emit('asset', {'kind': 'subdomain', 'value': r['host']})\n"
+    )
+    env = {**os.environ, "PYTHONPATH": str(ROOT / "sdk"), "NYX_INPUT": "{}"}
+    env.pop("NYX_FIXTURE", None)
+    start = time.monotonic()
+    proc = subprocess.Popen([sys.executable, str(adapter)], env=env, stdout=subprocess.PIPE, text=True)
+    first = proc.stdout.readline()
+    first_at = time.monotonic() - start
+    proc.wait(timeout=30)
+    assert '"asset"' in first
+    assert first_at < 3, f"first event after {first_at:.1f}s: the SDK waits for the tool to finish"
