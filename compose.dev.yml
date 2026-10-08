@@ -1,0 +1,10 @@
+# Host-side development only: publishes Postgres and the API on 127.0.0.1 so uvicorn, alembic and pytest
+# on your machine can reach them. While this is in use, plugin containers can reach them too.
+#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+  api:
+    ports:
+      - "127.0.0.1:8000:8000"

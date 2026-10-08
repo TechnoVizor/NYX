@@ -1,4 +1,7 @@
-# docker compose up --build    web -> http://localhost:3001, api -> http://localhost:8000
+# docker compose --profile plugins build && docker compose up --build    web -> http://localhost:3001
+# Only the web UI is published. Plugin containers can reach whatever the host publishes (Docker Desktop forwards
+# host.docker.internal), so Postgres and the API stay unpublished. For host-side development and tests:
+#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres
 services:
   postgres:
     image: postgres:17-alpine
@@ -7,8 +10,6 @@ services:
       POSTGRES_USER: nyx
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nyx}
       POSTGRES_DB: nyx
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,13 +28,12 @@ services:
       NYX_COOKIE_SECURE: ${NYX_COOKIE_SECURE:-false}
       NYX_RUNNER_URL: http://runner:8100
       NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
-    ports:
-      - "127.0.0.1:8000:8000"
+    networks: [default, runner]
     depends_on:
       postgres:
         condition: service_healthy
       runner:
-        condition: service_started
+        condition: service_healthy  # the startup sync asks the runner for image digests
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 5s
@@ -60,7 +60,12 @@ services:
       NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    # No ports: only the API talks to it, over the compose network.
+    # No ports, and only the API shares a network with it.
+    networks: [runner]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/healthz')"]
+      interval: 3s
+      retries: 20
 
   plugin-subfinder:
     profiles: ["plugins"]
@@ -89,6 +94,7 @@ volumes:
   pgdata:
 
 networks:
+  runner: {}
   # Created by the runner at startup (it also checks before every run), so it exists whether or not compose made it.
   nyx-plugins:
     name: nyx-plugins
