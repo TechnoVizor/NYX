@@ -98,3 +98,15 @@ def test_require_role_blocks_other_roles():
         require_role("admin")(viewer)
     assert e.value.status_code == 403
     assert require_role("admin", "viewer")(viewer) is viewer
+
+
+@pytest.mark.parametrize("email", ["admin@nyx.local", "me@home.arpa", "ops@corp.internal"])
+def test_signup_accepts_self_hosted_domains(client, email):
+    r = client.post("/api/v1/auth/signup", json={"email": email, "password": PW})
+    assert r.status_code == 201
+    assert r.json()["email"] == email
+
+
+def test_signup_rejects_malformed_email(client):
+    r = client.post("/api/v1/auth/signup", json={"email": "not-an-email", "password": PW})
+    assert r.status_code == 422

@@ -1,9 +1,10 @@
+import re
 import uuid
 from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
@@ -12,15 +13,28 @@ from app.models import User
 from app.security import DB, Token, current_user, end_session, hash_password, start_session, verify_password
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
+_EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+def _email(value: str) -> str:
+    # Same shape check as the login form. Not EmailStr: it rejects .local / .internal / .home.arpa,
+    # which is exactly where self-hosted installs live.
+    value = value.strip()
+    if len(value) > 320 or not _EMAIL.fullmatch(value):
+        raise ValueError("Enter a valid email address.")
+    return value
+
+
+Email = Annotated[str, AfterValidator(_email)]
 
 
 class SignupIn(BaseModel):
-    email: EmailStr
+    email: Email
     password: str = Field(min_length=10, max_length=256)
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: Email
     password: str = Field(min_length=1, max_length=256)
 
 
