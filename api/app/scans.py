@@ -3,7 +3,6 @@
 Plain functions over a Session. The Temporal activities (app/activities.py) are thin wrappers around them.
 """
 
-import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
