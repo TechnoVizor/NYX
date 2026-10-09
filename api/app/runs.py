@@ -59,7 +59,8 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
                 "run_id": str(run.id),
                 "plugin_id": version.plugin_id,
                 "plugin_version": version.version,
-                "target": run.target,
+                "targets": run.targets,
+                "target": run.targets[0],  # single-target adapters read this one
                 "config": {},
                 "rate_limit": m["limits"]["default_rate_limit"],
             },

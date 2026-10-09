@@ -133,7 +133,9 @@ def start_run(
     entry = find_entry(target["type"], target["value"], db.scalars(select(ScopeTarget)).all())
     if reason := refusal(p.risk_level, target["value"], entry):
         raise HTTPException(403, reason)
-    run = PluginRun(plugin_version_id=v.id, target=target, status="PENDING", requested_by=user.id, event_count=0)
+    run = PluginRun(
+        plugin_version_id=v.id, targets=[target], status="PENDING", attempt=0, requested_by=user.id, event_count=0
+    )
     db.add(run)
     db.commit()
     background.add_task(execute_run, run.id, runner)

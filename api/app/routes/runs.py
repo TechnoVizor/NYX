@@ -15,13 +15,16 @@ Anyone = Annotated[User, Depends(current_user)]
 
 class RunOut(BaseModel):
     id: uuid.UUID
+    scan_id: uuid.UUID | None
     plugin_id: str
     plugin_version: str
     target: dict
+    targets: list[dict]
     status: str
     error: str | None
     exit_code: int | None
     event_count: int
+    attempt: int
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
@@ -37,13 +40,16 @@ class EventOut(BaseModel):
 def run_out(run: PluginRun, version: PluginVersion) -> dict:
     return {
         "id": run.id,
+        "scan_id": run.scan_id,
         "plugin_id": version.plugin_id,
         "plugin_version": version.version,
-        "target": run.target,
+        "target": run.targets[0],
+        "targets": run.targets,
         "status": run.status,
         "error": run.error,
         "exit_code": run.exit_code,
         "event_count": run.event_count,
+        "attempt": run.attempt,
         "created_at": run.created_at,
         "started_at": run.started_at,
         "finished_at": run.finished_at,

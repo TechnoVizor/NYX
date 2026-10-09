@@ -20,7 +20,10 @@ from app.config import settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
-TABLES = "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, plugin_runs, plugin_events"
+TABLES = (
+    "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, "
+    "scans, scan_targets, plugin_runs, plugin_events"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
