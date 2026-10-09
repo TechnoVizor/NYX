@@ -54,7 +54,7 @@ These are the rules I'm being built on. They are design constraints, not marketi
 
 - **Scan what you don't own.** Targets go through a scope registry first. Out of scope means refused, not "warned".
 - **Let plugins wander.** Every scanner runs in its own box: rootless runtime, no Docker or Podman socket, read-only filesystem, network limited to your scope, per-target rate limits, no database credentials.
-  Today: read-only, non-root, no capabilities, CPU/RAM/process limits, a time limit, and no route to the database, the API or the runner: only the web UI is published, which is all a plugin can see of this machine. Next: network egress limited to your scope.
+  Today: read-only, non-root, no capabilities, CPU/RAM/process limits, a time limit, no route to the database, the API or the runner, and a firewall in front of every plugin that it cannot touch: a plugin that talks to its target can reach only the hosts of its batch, and a passive plugin reaches public sources but never your private networks.
 - **Make things up.** Risk comes from evidence and vulnerability data, not from a language model's mood. AI helps me sort and explain; it never invents a finding.
 
 ## How I'm built
@@ -125,7 +125,7 @@ Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your 
 
 ## Teach me a new scanner
 
-Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, what it produces, how risky it is, how much CPU and memory it gets), and turn its JSON output into events in `adapter.py`. `api/tests/test_adapters.py` shows how to test it offline against a recorded fixture.
+Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, what it produces, how risky it is, how much CPU and memory it gets), and turn its JSON output into events in `adapter.py`. `api/tests/test_adapters.py` shows how to test it offline against a recorded fixture. Declare `network: target_scope` if the tool talks to the target, `public` if it only asks public sources (passive plugins only).
 
 ## Repository map
 
@@ -142,7 +142,7 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 
 - [x] **1. Core platform** — monorepo, FastAPI, PostgreSQL, accounts and roles, Docker Compose, CI
 - [x] **2. Plugin specification** — manifest schema, canonical events, plugin registry, first three plugins
-- [ ] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause (done); network egress limited to scope (next)
+- [x] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause, network egress limited to scope
 - [ ] **4. Default plugin set** — Subfinder, dnsx, httpx, Nuclei and friends
 - [ ] **5. Evidence and graph** — immutable hash-addressed evidence in MinIO, entity graph in Memgraph
 - [ ] **6. Adaptive planner** — decide the next tool from what the last one found

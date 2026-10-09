@@ -102,6 +102,12 @@ services:
       interval: 3s
       retries: 20
 
+  egress:
+    # The per-run egress firewall the runner puts in front of every networked plugin.
+    profiles: ["plugins"]
+    image: nyx-egress:1
+    build: ./runner/egress
+
   plugin-subfinder:
     profiles: ["plugins"]
     image: nyx-plugin/subfinder:2.16.0
