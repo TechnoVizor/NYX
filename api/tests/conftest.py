@@ -58,9 +58,13 @@ class StubRunner:
         self.lines = lines or []
         self.error = error
         self.calls = []
+        self.cancelled = []
 
     def digest(self, image):
         return self.digests.get(image)
+
+    def cancel(self, run_id):
+        self.cancelled.append(run_id)
 
     def run(self, body):
         self.calls.append(body)

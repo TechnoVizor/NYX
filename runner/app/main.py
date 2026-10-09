@@ -95,6 +95,19 @@ def start(body: RunIn):
     )
 
 
+@app.delete("/v1/runs/{run_id}", status_code=204, dependencies=[Auth])
+def cancel(run_id: str):
+    """Kill the run's container. The streaming request for it then ends with its trailer, as on any exit."""
+    containers = engine().containers.list(all=True, filters={"label": f"nyx.run_id={run_id}"})
+    if not containers:
+        raise HTTPException(404, "No such run.")
+    for c in containers:
+        try:
+            c.kill()
+        except (NotFound, APIError):
+            pass  # already exited; stream() removes it
+
+
 MAX_LINE = 64 * 1024
 
 
