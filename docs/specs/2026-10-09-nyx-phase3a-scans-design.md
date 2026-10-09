@@ -21,7 +21,7 @@ Success:
 
 `docker-compose.yml` gains:
 
-- `temporal`: `temporalio/temporal:1.9.1`, command `server start-dev --ip 0.0.0.0 --db-filename /data/temporal.db`, volume `temporal-data:/data`, network `default`, not published. Healthcheck: `temporal operator cluster health --address 127.0.0.1:7233`. Single node, SQLite: enough for the single-node thesis deployment (§39). Upgrade path when needed: a Postgres-backed Temporal server; workflow code does not change.
+- `temporal`: `temporalio/temporal:1.9.1`, command `server start-dev --ip 0.0.0.0 --db-filename /home/temporal/temporal.db`, volume `temporal-data:/home/temporal` (the image runs as uid 1000 and only its home directory is writable), network `default`, not published. Healthcheck: `temporal operator cluster health --address 127.0.0.1:7233`. Single node, SQLite: enough for the single-node thesis deployment (§39). Upgrade path when needed: a Postgres-backed Temporal server; workflow code does not change.
 - `worker`: built from the API image (`api/Dockerfile`), command `python -m app.worker`, networks `default` and `runner`, same `NYX_*` environment as `api` plus `NYX_TEMPORAL_ADDRESS=temporal:7233`. Depends on postgres, runner and temporal being healthy. It is the only process that executes scans.
 - `api` gains `NYX_TEMPORAL_ADDRESS` and depends on temporal being healthy.
 - `compose.dev.yml` publishes `127.0.0.1:7233` (gRPC, for host-side worker/tests) and `127.0.0.1:8233` (Temporal Web UI).
@@ -99,7 +99,7 @@ In `app/activities.py`; all idempotent; each opens its own DB session.
 
 **`plan(scan_id) -> list[str]`** — one transaction:
 1. Select `scan_targets` with `in_scope`, `routed_at is null`, `depth < max_depth`, oldest first (with `max_depth = 0` the root is never routed by `plan`; see §6 single runs).
-2. For each selected plugin whose installed version is enabled, has a digest and accepts the target's type, apply the Phase 2 gate (`scope.refusal` with the plugin's risk level and the target's scope entry). Refused pairs are skipped (the reason is not per-plugin-stored in 3a; the target row stays `in_scope`).
+2. For each selected plugin whose installed version is enabled, has a digest and accepts the target's type, and that did not itself produce the target (a plugin is never fed its own output: no Subfinder on Subfinder's subdomains, no httpx on httpx's URLs), apply the Phase 2 gate (`scope.refusal` with the plugin's risk level and the target's scope entry). Refused pairs are skipped (the reason is not per-plugin-stored in 3a; the target row stays `in_scope`).
 3. Group allowed targets per plugin, cut into batches of 500, insert PENDING `plugin_runs` with `scan_id` and `targets`; set `routed_at` on the targets.
 4. Return the ids of **all** PENDING runs of the scan. A retry after a commit loses nothing; the workflow skips ids it already started.
 
@@ -109,8 +109,8 @@ In `app/activities.py`; all idempotent; each opens its own DB session.
 - `activity.heartbeat()` at least once a second while lines stream (and while waiting for the first line).
 - After the trailer, for valid `asset` events with a mapped kind: normalize with `scope.normalized_target`, check scope with `scope.find_entry`, insert into `scan_targets` with `depth = parent depth + 1`, `source_run_id`, `in_scope`, `refusal` (`"<value> is not in scope."`), `ON CONFLICT DO NOTHING`. Stop inserting at `max_targets` and set the scan's `error = "Stopped at {max_targets} targets."`. The parent depth is the max depth of the run's targets.
 - Plugin outcomes (exit ≠ 0, timeout, too much output, unstorable output) set the run's final status as in Phase 2 and return normally — no retry.
-- Infrastructure errors (`RunnerError`: unreachable, refused 429/5xx) raise, so Temporal retries.
-- On `asyncio.CancelledError` from heartbeat: runner `DELETE /v1/runs/{run_id}`, run status CANCELLED, `error = "Cancelled."`, re-raise.
+- Infrastructure errors (`RunnerError`: unreachable, refused 429/5xx) put the run back to PENDING with the message in `error` and raise, so Temporal retries.
+- Cancellation: the activity is declared with `no_thread_cancel_exception=True` (the SDK would otherwise raise into the thread mid-write). A heartbeat thread beats every second; when `activity.is_cancelled()` it calls runner `DELETE /v1/runs/{run_id}`, the stream ends, the run becomes CANCELLED (`error = "Cancelled."`) and the activity raises `temporalio.exceptions.CancelledError`.
 - On the last failed attempt the run must not stay RUNNING: the workflow, on a non-retryable `ActivityError` from `run_batch`, calls `mark_failed(run_id, message)` (`"Runner unreachable."` or the error text).
 
 Activity options for `run_batch`: `start_to_close_timeout = 2 h` (a fixed upper bound; the runner enforces each plugin's real `timeout_seconds`, and the heartbeat catches a dead worker much sooner), `heartbeat_timeout = 30 s`, retry: initial 2 s, backoff 2.0, max interval 60 s, max attempts 5.
@@ -126,7 +126,7 @@ Sets `finished_at`. Leftover PENDING runs (cancelled before start) become CANCEL
 
 **`mark_failed(run_id, message)`**: run → FAILED with message, `finished_at`.
 
-The worker (`app/worker.py`) runs `ScanWorkflow` and these activities with a thread-pool activity executor (`max_concurrent_activities = 8`), because `run_batch` uses the existing synchronous SQLAlchemy and httpx code.
+The worker (`app/worker.py`) runs `ScanWorkflow` and these activities with a thread-pool activity executor and `max_concurrent_activities = 4` (the runner's slot count, so batches queue in Temporal instead of bouncing off 429), because `run_batch` uses the existing synchronous SQLAlchemy and httpx code.
 
 ## 6. API
 
@@ -136,7 +136,7 @@ Routes (`app/routes/scans.py`, prefix `/api/v1/scans`). Writers: admin and analy
 
 | Method | Behaviour |
 |---|---|
-| `POST /scans` `{target: {type, value}, plugin_ids?: [str], max_depth?: 0–3}` | Normalize the target; refuse with Phase 2 messages when the root is out of scope (403). `plugin_ids` default: every enabled plugin with a digest, excluding intrusive; unknown or disabled ids → 422. Insert scan (CREATED) and root `scan_targets` row (depth 0, in_scope), start the workflow, commit; if starting the workflow fails, roll back and answer 503. Returns 202 with the scan. |
+| `POST /scans` `{target: {type, value}, plugin_ids?: [str], max_depth?: 1–3}` | Normalize the target; refuse with Phase 2 messages when the root is out of scope (403). `plugin_ids` default: every enabled plugin with a digest, excluding intrusive; unknown or disabled ids → 422. Insert scan (CREATED) and root `scan_targets` row (depth 0, in_scope), commit, then start the workflow; if starting fails, the scan (and any PENDING run) is marked FAILED `"Scan engine unavailable."` and the API answers 503. Returns 202 with the scan. |
 | `GET /scans` | Last 50 scans, newest first. |
 | `GET /scans/{id}` | Scan plus counts: targets in / out of scope, runs per status, events total. |
 | `GET /scans/{id}/runs` | Runs of the scan: plugin, number of targets, status, attempt, error, timings, event count. |
@@ -144,7 +144,7 @@ Routes (`app/routes/scans.py`, prefix `/api/v1/scans`). Writers: admin and analy
 | `POST /scans/{id}/pause` · `/resume` | Signal the workflow. 409 `"The scan has finished."` on a final status. |
 | `POST /scans/{id}/cancel` | `handle.cancel()`. 409 on a final status. |
 
-Single runs: `POST /api/v1/plugins/{id}/runs {target}` keeps its contract and gate checks. It now creates a scan (`plugin_ids = [id]`, `max_depth = 0`), the root target with `routed_at` already set, and one PENDING run with `targets = [target]`, then starts the workflow and returns `RunOut` (gaining `scan_id` and `targets`). `GET /runs/{id}` and `/runs/{id}/events` are unchanged apart from those two fields.
+Single runs: `POST /api/v1/plugins/{id}/runs {target}` keeps its contract and gate checks. It now creates a scan (`plugin_ids = [id]`, `max_depth = 0`), the root target with `routed_at` already set, and one PENDING run with `targets = [target]`, then starts the workflow and returns `RunOut` (gaining `scan_id` and `targets`). `GET /runs/{id}` and `/runs/{id}/events` are unchanged apart from those two fields; `target` stays in `RunOut` as the first of `targets`.
 
 ## 7. Runner
 
@@ -153,7 +153,7 @@ Single runs: `POST /api/v1/plugins/{id}/runs {target}` keeps its contract and ga
 
 ## 8. UI
 
-- `/app/scans/new`: target picked from scope entries (subdomain typing for domain entries, as on the plugin page), plugin checkboxes (default = the API default set), depth 0–3. Refusals inline.
+- `/app/scans/new`: target picked from scope entries (subdomain typing for domain entries, as on the plugin page), plugin checkboxes (default = the API default set), depth 1–3. Refusals inline.
 - `/app/scans`: table — target, status, plugins, targets found, runs, started, duration.
 - `/app/scans/[scanId]`: header with status and Pause / Resume / Cancel (admin, analyst); counters; runs table (row expands to the existing event feed from `run-panel`); targets table with out-of-scope rows dimmed and their reason. Polls every 2 s until the status is final.
 - `/app/scans/[scanId]/live` redirects to `/app/scans/[scanId]` (no SSE until Redis).
