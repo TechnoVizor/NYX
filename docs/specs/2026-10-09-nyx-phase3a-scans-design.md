@@ -126,7 +126,7 @@ Sets `finished_at`. Leftover PENDING runs (cancelled before start) become CANCEL
 
 **`mark_failed(run_id, message)`**: run → FAILED with message, `finished_at`.
 
-The worker (`app/worker.py`) runs `ScanWorkflow` and these activities with a thread-pool activity executor and `max_concurrent_activities = 4` (the runner's slot count, so batches queue in Temporal instead of bouncing off 429), because `run_batch` uses the existing synchronous SQLAlchemy and httpx code.
+The worker (`app/worker.py`) runs two Temporal workers sharing a thread-pool executor: `nyx-scans` (the workflow and the short activities) and `nyx-scans-batches` (`run_batch` only, `max_concurrent_activities = 4`, the runner's slot count, so batches queue in Temporal instead of bouncing off 429, and pause, cancel and other scans never wait behind busy batch slots), because `run_batch` uses the existing synchronous SQLAlchemy and httpx code.
 
 ## 6. API
 
