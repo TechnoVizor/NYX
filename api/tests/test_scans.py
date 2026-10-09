@@ -337,3 +337,44 @@ def test_mark_failed(world):
         scans.mark_failed(db, run, "Runner unreachable.")
         r = db.get(PluginRun, run)
         assert (r.status, r.error) == ("FAILED", "Runner unreachable.") and r.finished_at
+
+
+def test_run_batch_activity_cancel_kills_the_container(world, monkeypatch):
+    import threading
+    import time
+
+    from temporalio.exceptions import CancelledError
+    from temporalio.testing import ActivityEnvironment
+
+    from app import activities
+
+    monkeypatch.setattr(activities, "get_runner", lambda: world)
+    scan = new_scan(["t.sub"])
+    run = add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}])
+
+    def lines(body):
+        for _ in range(200):  # the "container" runs until the runner kills it
+            if world.cancelled:
+                break
+            time.sleep(0.05)
+        return trailer(137)
+
+    world.lines = [asset("subdomain", "a.example.com"), lines]
+    env = ActivityEnvironment()
+    outcome = {}
+
+    def go():
+        try:
+            env.run(activities.run_batch, str(run))
+        except BaseException as e:  # noqa: BLE001
+            outcome["error"] = e
+
+    t = threading.Thread(target=go)
+    t.start()
+    time.sleep(1.5)
+    env.cancel()
+    t.join(15)
+    assert isinstance(outcome.get("error"), CancelledError)
+    assert world.cancelled == [str(run)]
+    with SessionLocal() as db:
+        assert db.get(PluginRun, run).status == "CANCELLED"
