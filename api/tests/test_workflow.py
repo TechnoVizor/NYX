@@ -1,6 +1,7 @@
 """ScanWorkflow against Temporal's time-skipping test server, with scripted activities under the real names."""
 
 import asyncio
+import contextlib
 import os
 import uuid
 
@@ -9,21 +10,22 @@ from temporalio import activity
 from temporalio.client import Client, WorkflowFailureError
 from temporalio.exceptions import ApplicationError
 from temporalio.testing import WorkflowEnvironment
-from temporalio.worker import Worker
 
+from app.worker import build_workers
 from app.workflows import ScanWorkflow
 
 
 class Engine:
     """A fake scan: plan() returns what is pending; finishing a run may add its children."""
 
-    def __init__(self, roots, children=None, hold=(), fail=()):
+    def __init__(self, roots, children=None, hold=(), fail=(), plan_delay=0.0):
         self.pending = list(roots)
         self.children = children or {}
         self.hold = {r: asyncio.Event() for r in hold}
         self.fail = set(fail)
         self.status, self.ran, self.failed = [], [], {}
         self.running, self.max_running, self.final = set(), 0, None
+        self.plan_delay, self.planning, self.log = plan_delay, False, []
 
     def activities(self):
         @activity.defn(name="set_status")
@@ -32,6 +34,10 @@ class Engine:
 
         @activity.defn(name="plan")
         async def plan(scan_id: str) -> list[str]:
+            self.planning = True
+            await asyncio.sleep(self.plan_delay)  # a slow plan is still a plan: it finishes even if cancelled
+            self.planning = False
+            self.log.append("plan")
             return list(self.pending)
 
         @activity.defn(name="run_batch")
@@ -54,6 +60,7 @@ class Engine:
 
         @activity.defn(name="finalize")
         async def finalize(scan_id: str, cancelled: bool) -> str:
+            self.log.append("finalize")
             self.final = cancelled
             return "CANCELLED" if cancelled else "COMPLETED"
 
@@ -86,7 +93,14 @@ def scenario(engine, body):
 
     async def main():
         async with await environment() as env:
-            async with Worker(env.client, task_queue=queue, workflows=[ScanWorkflow], activities=engine.activities()):
+            acts = engine.activities()
+            control = [a for a in acts if a.__name__ != "run_batch"]
+            batch = [a for a in acts if a.__name__ == "run_batch"]
+            # The production worker layout, slot limits included.
+            workers = build_workers(env.client, queue, control, batch)
+            async with contextlib.AsyncExitStack() as stack:
+                for w in workers:
+                    await stack.enter_async_context(w)
                 handle = await env.client.start_workflow(
                     ScanWorkflow.run, "scan-1", id=f"scan-{uuid.uuid4()}", task_queue=queue
                 )
@@ -103,8 +117,18 @@ def test_runs_children_until_nothing_is_pending():
 
 
 def test_at_most_four_in_flight():
-    e = Engine([f"r{i}" for i in range(10)])
-    scenario(e, lambda h: h.result())
+    ids = [f"r{i}" for i in range(10)]
+    e = Engine(ids, hold=ids)
+
+    async def body(h):
+        await until(lambda: len(e.running) == 4)
+        await asyncio.sleep(1)  # room for a fifth to start, if anything would let it
+        assert len(e.running) == 4
+        for ev in e.hold.values():
+            ev.set()
+        return await h.result()
+
+    assert scenario(e, body) == "COMPLETED"
     assert e.max_running == 4 and len(e.ran) == 10
 
 
@@ -156,3 +180,32 @@ def test_failed_batch_is_marked():
     e = Engine(["a"], fail=["a"])
     assert scenario(e, lambda h: h.result()) == "COMPLETED"  # the fake finalize; real one decides FAILED
     assert e.failed == {"a": "Runner unreachable."}
+
+
+def test_cancel_during_a_slow_plan_still_finalizes_after_it():
+    e = Engine(["a"], plan_delay=2.0)
+
+    async def body(h):
+        await until(lambda: e.planning)
+        await h.cancel()
+        with pytest.raises(WorkflowFailureError):
+            await h.result()
+
+    scenario(e, body)
+    assert e.final is True
+
+
+def test_pause_shows_and_cancel_finalizes_while_every_batch_slot_is_busy():
+    ids = [f"r{i}" for i in range(4)]
+    e = Engine(ids, hold=ids)
+
+    async def body(h):
+        await until(lambda: len(e.running) == 4)
+        await h.signal(ScanWorkflow.pause)
+        await until(lambda: "PAUSED" in e.status, timeout=5)
+        await h.cancel()
+        with pytest.raises(WorkflowFailureError):
+            await h.result()
+
+    scenario(e, body)
+    assert e.final is True and not e.running

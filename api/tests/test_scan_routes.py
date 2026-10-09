@@ -123,3 +123,18 @@ def test_detail_counts(client, world):
     assert (s["targets_in_scope"], s["targets_out_of_scope"], s["runs"], s["events"]) == (2, 1, {"SUCCEEDED": 1}, 2)
     out = client.get(f"/api/v1/scans/{sid}/targets?in_scope=false").json()
     assert [(t["value"], t["refusal"]) for t in out] == [("x.other.net", "x.other.net is not in scope.")]
+
+
+@pytest.mark.parametrize(
+    "status,code,detail",
+    [("NOT_FOUND", 409, "The scan has finished."), ("UNAVAILABLE", 503, "Scan engine unavailable.")],
+)
+@pytest.mark.parametrize("action", ["pause", "resume", "cancel"])
+def test_engine_errors_on_controls_are_json(client, world, temporal, action, status, code, detail):
+    from temporalio.service import RPCError, RPCStatusCode
+
+    temporal.drive = False
+    sid = start(client).json()["id"]
+    temporal.handle_error = RPCError("boom", RPCStatusCode[status], b"")
+    r = client.post(f"/api/v1/scans/{sid}/{action}")
+    assert (r.status_code, r.json()["detail"]) == (code, detail)

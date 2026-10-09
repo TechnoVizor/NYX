@@ -117,7 +117,7 @@ class FakeTemporal:
     """Stands in for the Temporal client. drive=True runs a started scan inline (see drive_scan)."""
 
     def __init__(self):
-        self.drive, self.down = True, False
+        self.drive, self.down, self.handle_error = True, False, None
         self.started, self.signals, self.cancelled = [], [], []
 
     async def start_workflow(self, workflow, scan_id, *, id, task_queue):
@@ -133,9 +133,13 @@ class FakeTemporal:
 
         class Handle:
             async def signal(self, name):
+                if fake.handle_error:
+                    raise fake.handle_error
                 fake.signals.append((workflow_id, name))
 
             async def cancel(self):
+                if fake.handle_error:
+                    raise fake.handle_error
                 fake.cancelled.append(workflow_id)
 
         return Handle()

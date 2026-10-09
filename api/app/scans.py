@@ -6,7 +6,7 @@ Plain functions over a Session. The Temporal activities (app/activities.py) are 
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -80,9 +80,10 @@ def plan(db: Session, scan_id: uuid.UUID) -> list[str]:
     """Hand every new in-scope target to every selected plugin that takes it; return all PENDING run ids.
 
     Returning all PENDING runs (not only new ones) makes a retry after a lost reply harmless: the workflow
-    skips the ids it already started.
+    skips the ids it already started. The scan row is locked for the whole plan, so an abandoned plan that
+    outlives a cancel waits for finalize and then sees the final status instead of adding runs nobody closes.
     """
-    scan = db.get(Scan, scan_id)
+    scan = db.scalar(select(Scan).where(Scan.id == scan_id).with_for_update())
     if scan.status not in SCAN_FINAL:
         entries = db.scalars(select(ScopeTarget)).all()
         plugins = [
@@ -137,17 +138,16 @@ def plan(db: Session, scan_id: uuid.UUID) -> list[str]:
 
 
 def set_status(db: Session, scan_id: uuid.UUID, status: str) -> None:
-    scan = db.get(Scan, scan_id)
-    if scan.status in SCAN_FINAL:
-        return
-    scan.status = status
-    if status == "RUNNING" and scan.started_at is None:
-        scan.started_at = _now()
+    """One conditional UPDATE: a set_status abandoned by a cancel can never reopen a finished scan."""
+    values = {"status": status}
+    if status == "RUNNING":
+        values["started_at"] = func.coalesce(Scan.started_at, func.now())
+    db.execute(update(Scan).where(Scan.id == scan_id, Scan.status.not_in(SCAN_FINAL)).values(**values))
     db.commit()
 
 
 def finalize(db: Session, scan_id: uuid.UUID, cancelled: bool) -> str:
-    scan = db.get(Scan, scan_id)
+    scan = db.scalar(select(Scan).where(Scan.id == scan_id).with_for_update())  # waits out a running plan
     db.execute(
         update(PluginRun)
         .where(PluginRun.scan_id == scan_id, PluginRun.status == "PENDING")

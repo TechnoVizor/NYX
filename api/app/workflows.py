@@ -6,10 +6,13 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
-from temporalio.exceptions import ActivityError, CancelledError
+from temporalio.exceptions import ActivityError, CancelledError, is_cancelled_exception
 from temporalio.workflow import ActivityCancellationType
 
 MAX_IN_FLIGHT = 4  # the runner's slots
+BATCH_QUEUE_SUFFIX = "-batches"  # batches get their own queue and slots (app/worker.py)
+# A cancel abandons a running short activity (it never heartbeats); app/scans.py makes sure an abandoned
+# plan or set_status that finishes after finalize cannot reopen the scan or leave runs behind.
 SHORT = {"start_to_close_timeout": timedelta(minutes=1)}
 BATCH = {
     # The runner enforces each plugin's own time limit; this only bounds a batch that lost its runner.
@@ -62,7 +65,10 @@ class ScanWorkflow:
                 if not self.tasks:
                     return await self._call("finalize", scan_id, False)
                 await workflow.wait_condition(lambda: self.paused or any(t.done() for t in self.tasks.values()))
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, ActivityError) as e:
+            # A cancel that lands while the workflow awaits an activity surfaces as ActivityError(CancelledError).
+            if not is_cancelled_exception(e):
+                raise
             for t in self.tasks.values():
                 t.cancel()
             await asyncio.gather(*self.tasks.values(), return_exceptions=True)
@@ -71,7 +77,9 @@ class ScanWorkflow:
 
     async def _batch(self, run_id: str) -> None:
         try:
-            await workflow.execute_activity("run_batch", run_id, **BATCH)
+            await workflow.execute_activity(
+                "run_batch", run_id, task_queue=workflow.info().task_queue + BATCH_QUEUE_SUFFIX, **BATCH
+            )
         except ActivityError as e:
             if isinstance(e.cause, CancelledError):
                 raise

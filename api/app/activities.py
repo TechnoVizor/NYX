@@ -61,4 +61,5 @@ def run_batch(run_id: str) -> None:
         raise CancelledError("Cancelled.")
 
 
-ALL = [set_status, plan, run_batch, finalize, mark_failed]
+CONTROL = [set_status, plan, finalize, mark_failed]
+BATCH = [run_batch]

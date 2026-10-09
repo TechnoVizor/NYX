@@ -378,3 +378,53 @@ def test_run_batch_activity_cancel_kills_the_container(world, monkeypatch):
     assert world.cancelled == [str(run)]
     with SessionLocal() as db:
         assert db.get(PluginRun, run).status == "CANCELLED"
+
+
+def _hold_cancelled(scan_id):
+    """Another transaction (finalize) has the scan locked and CANCELLED, not yet committed."""
+    from sqlalchemy.orm import Session
+
+    from app.db import engine
+
+    db = Session(engine)
+    db.execute(select(Scan).where(Scan.id == scan_id).with_for_update())
+    db.get(Scan, scan_id).status = "CANCELLED"
+    db.flush()
+    return db
+
+
+def _in_thread(fn):
+    import threading
+
+    out = {}
+    t = threading.Thread(target=lambda: out.update(result=fn()))
+    t.start()
+    return t, out
+
+
+def test_plan_waits_for_a_finalizing_scan_and_adds_nothing(world):
+    scan = new_scan(["t.sub"])
+    holder = _hold_cancelled(scan)
+    t, out = _in_thread(lambda: plan(scan))
+    t.join(1)
+    holder.commit()
+    holder.close()
+    t.join(10)
+    assert out["result"] == [] and runs_of(scan) == []
+
+
+def test_set_status_cannot_reopen_a_scan_being_finalized(world):
+    scan = new_scan(["t.sub"])
+    holder = _hold_cancelled(scan)
+
+    def go():
+        with SessionLocal() as db:
+            scans.set_status(db, scan, "PAUSED")
+
+    t, _ = _in_thread(go)
+    t.join(1)
+    holder.commit()
+    holder.close()
+    t.join(10)
+    with SessionLocal() as db:
+        assert db.get(Scan, scan).status == "CANCELLED"

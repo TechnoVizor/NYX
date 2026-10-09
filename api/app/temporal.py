@@ -8,6 +8,7 @@ import logging
 from anyio import from_thread
 from fastapi import HTTPException, Request
 from temporalio.client import Client
+from temporalio.service import RPCError, RPCStatusCode
 
 from app.config import settings
 from app.worker import TASK_QUEUE
@@ -43,9 +44,18 @@ def start_scan(client, scan_id) -> None:
     )
 
 
+def _control(call, *args) -> None:
+    try:
+        from_thread.run(call, *args)
+    except RPCError as e:
+        if e.status == RPCStatusCode.NOT_FOUND:  # the workflow already closed: finalize won the race
+            raise HTTPException(409, "The scan has finished.") from None
+        raise HTTPException(503, UNAVAILABLE) from None
+
+
 def signal_scan(client, scan_id, name: str) -> None:
-    from_thread.run(client.get_workflow_handle(workflow_id(scan_id)).signal, name)
+    _control(client.get_workflow_handle(workflow_id(scan_id)).signal, name)
 
 
 def cancel_scan(client, scan_id) -> None:
-    from_thread.run(client.get_workflow_handle(workflow_id(scan_id)).cancel)
+    _control(client.get_workflow_handle(workflow_id(scan_id)).cancel)
