@@ -46,7 +46,7 @@ Every scan is a short story. Here's one, step by step.
 | <img src=".github/assets/steps/correlate.jpg" width="200"> | **Correlate.** Hosts, services, certificates and findings go into one graph, so you see how things connect. |
 | <img src=".github/assets/steps/report.jpg" width="200"> | **Report.** You get a report you can rerun and check: same inputs, same evidence, same conclusions. |
 
-> This is where I'm headed. Today I can run Subfinder, dnsx and httpx one at a time, each in its own locked-down container, and only against targets in your scope. Chaining them into a full scan is next; see the [roadmap](#roadmap).
+> This is where I'm headed. Today I chain Subfinder, dnsx and httpx: every host I find goes through the scope check and on to the next tool, in batches, each tool in its own locked-down container, and a scan survives restarts. The planner that picks tools by what it found is next; see the [roadmap](#roadmap).
 
 ## What I refuse to do
 
@@ -62,11 +62,13 @@ These are the rules I'm being built on. They are design constraints, not marketi
 ```mermaid
 flowchart LR
   user(["You"]) --> web["web · Next.js<br/>workspace UI"]
-  web -- "/api/*" --> api["api · FastAPI<br/>accounts, scope, plugin registry"]
+  web -- "/api/*" --> api["api · FastAPI<br/>accounts, scope, plugins, scans"]
   api --> pg[("PostgreSQL")]
-  api --> runner["runner<br/>the only piece with Docker"]
+  api --> temporal["Temporal<br/>durable scans"]
+  temporal --> worker["worker<br/>runs scans"]
+  worker --> pg
+  worker --> runner["runner<br/>the only piece with Docker"]
   runner --> plugins["plugin containers<br/>read-only, no root, no DB"]
-  api -. planned .-> temporal["Temporal<br/>durable scans"]
   plugins -. planned .-> minio[("MinIO<br/>raw evidence")]
   api -. planned .-> memgraph[("Memgraph<br/>entity graph")]
 ```
@@ -86,7 +88,7 @@ docker compose up --build
 
 Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API stays private to the containers; the web app talks to it for you.
 
-Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test`: add `nyx-lab.test` to scope with active scanning allowed and point httpx at it.
+Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. Then start a scan at **Scans → New scan**. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test`: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with dnsx and httpx.
 
 Everything listens on `127.0.0.1` only, on purpose.
 
@@ -104,16 +106,21 @@ Everything listens on `127.0.0.1` only, on purpose.
 <summary>Developing without containers</summary>
 
 ```bash
-docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner   # publishes them on 127.0.0.1 for host-side tools
+docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner temporal   # publishes them on 127.0.0.1 for host-side tools
 
 # terminal 1
 cd api && uv sync && uv run alembic upgrade head && NYX_RUNNER_TOKEN=nyx-local-runner-token uv run uvicorn app.main:app --reload --port 8000
 
-# terminal 2
+# terminal 2: the worker that executes scans
+cd api && NYX_RUNNER_TOKEN=nyx-local-runner-token uv run python -m app.worker
+
+# terminal 3
 cd web && pnpm install && pnpm dev --port 3001
 ```
 
-Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your accounts are safe). Lint: `uv run ruff check .`, `pnpm lint`.
+Scan history and every activity attempt are in the Temporal Web UI at <http://127.0.0.1:8233>.
+
+Tests: `cd api && uv run pytest` (they use a separate `nyx_test` database, your accounts are safe). Workflow tests download Temporal's test server; on a network that blocks `temporal.download`, run them against the dev server with `NYX_TEMPORAL_TEST_ADDRESS=127.0.0.1:7233`. Lint: `uv run ruff check .`, `pnpm lint`.
 </details>
 
 ## Teach me a new scanner
@@ -124,7 +131,7 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 
 | Path | What lives there |
 |---|---|
-| `api/` | FastAPI service: accounts, scope, plugin registry and runs. Migrations in `api/alembic`. |
+| `api/` | FastAPI service and the scan worker: accounts, scope, plugin registry, scans on Temporal. Migrations in `api/alembic`. |
 | `web/` | The workspace UI: sign-in, plugins with live runs, scope settings. Scans, findings and the rest are placeholders on mock data for now. |
 | `docs/` | Design specs and implementation plans. |
 | `plugins/` | The plugin contract (JSON Schemas), the one-file SDK, a template, and Subfinder, dnsx, httpx. |
@@ -135,7 +142,7 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 
 - [x] **1. Core platform** — monorepo, FastAPI, PostgreSQL, accounts and roles, Docker Compose, CI
 - [x] **2. Plugin specification** — manifest schema, canonical events, plugin registry, first three plugins
-- [ ] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause, network egress limited to scope
+- [ ] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause (done); network egress limited to scope (next)
 - [ ] **4. Default plugin set** — Subfinder, dnsx, httpx, Nuclei and friends
 - [ ] **5. Evidence and graph** — immutable hash-addressed evidence in MinIO, entity graph in Memgraph
 - [ ] **6. Adaptive planner** — decide the next tool from what the last one found

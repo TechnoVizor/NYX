@@ -2,6 +2,14 @@
 # Only the web UI is published. Plugin containers can reach whatever the host publishes (Docker Desktop forwards
 # host.docker.internal), so Postgres and the API stay unpublished. For host-side development and tests:
 #   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner
+x-api-env: &api-env
+  NYX_DATABASE_URL: postgresql+psycopg://nyx:${POSTGRES_PASSWORD:-nyx}@postgres:5432/nyx
+  NYX_ALLOW_SIGNUP: ${NYX_ALLOW_SIGNUP:-false}
+  NYX_COOKIE_SECURE: ${NYX_COOKIE_SECURE:-false}
+  NYX_RUNNER_URL: http://runner:8100
+  NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
+  NYX_TEMPORAL_ADDRESS: temporal:7233
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -22,22 +30,49 @@ services:
       context: .
       dockerfile: api/Dockerfile
     restart: unless-stopped
-    environment:
-      NYX_DATABASE_URL: postgresql+psycopg://nyx:${POSTGRES_PASSWORD:-nyx}@postgres:5432/nyx
-      NYX_ALLOW_SIGNUP: ${NYX_ALLOW_SIGNUP:-false}
-      NYX_COOKIE_SECURE: ${NYX_COOKIE_SECURE:-false}
-      NYX_RUNNER_URL: http://runner:8100
-      NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
+    environment: *api-env
     networks: [default, runner]
     depends_on:
       postgres:
         condition: service_healthy
       runner:
         condition: service_healthy  # the startup sync asks the runner for image digests
+      temporal:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 5s
       retries: 20
+
+  temporal:
+    # Single-node Temporal with SQLite: durable across restarts, enough for one machine. The image runs as uid 1000
+    # and only its home directory is writable, so the volume goes there.
+    image: temporalio/temporal:1.9.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    restart: unless-stopped
+    volumes:
+      - temporal-data:/home/temporal
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 3s
+      retries: 30
+
+  worker:
+    # Same image as the API; runs ScanWorkflow and its activities. The only process that executes scans.
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    environment: *api-env
+    networks: [default, runner]
+    depends_on:
+      api:
+        condition: service_healthy  # the API runs the migrations
+      runner:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
 
   web:
     build:
@@ -92,6 +127,7 @@ services:
 
 volumes:
   pgdata:
+  temporal-data:
 
 networks:
   runner: {}
