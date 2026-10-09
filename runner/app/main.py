@@ -3,6 +3,7 @@
 import json
 import secrets
 import threading
+import time
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -13,13 +14,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.sandbox import NETWORK, container_config
+from app.sandbox import EGRESS_IMAGE, NETWORK, container_config, egress_allow, egress_config
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="NYX_RUNNER_")
     token: str = ""
     max_runs: int = 4
+    # Addresses no plugin may reach in any mode, e.g. this server's public IP (space-separated IPs/CIDRs).
+    egress_deny: str = ""
 
 
 settings = Settings()
@@ -78,20 +81,66 @@ class RunIn(BaseModel):
     permissions: dict = {}
 
 
+READY_SECONDS = 15
+
+
+def egress_mode(network: str) -> str:
+    return "public" if network == "public" else "target_scope"
+
+
+def start_firewall(d, network: str, input: dict):
+    """Start the run's firewall and wait for its rules. Returns the container; raises HTTPException(500) otherwise."""
+    targets = input.get("targets") or ([input["target"]] if input.get("target") else [])
+    try:
+        fw = d.containers.run(
+            EGRESS_IMAGE,
+            **egress_config(
+                egress_mode(network), egress_allow(targets), str(input.get("run_id", "")), settings.egress_deny.split()
+            ),
+        )
+    except ImageNotFound:
+        raise HTTPException(
+            500, "Egress firewall image missing. Build it with: docker compose --profile plugins build"
+        ) from None
+    deadline = time.monotonic() + READY_SECONDS
+    while time.monotonic() < deadline:
+        if b"ready" in fw.logs(stdout=True, stderr=False):
+            return fw
+        fw.reload()
+        if fw.status == "exited":
+            break
+        time.sleep(0.1)
+    tail = fw.logs(stdout=False, stderr=True)[-1000:].decode("utf-8", "replace").strip()
+    fw.remove(force=True)
+    raise HTTPException(500, f"Egress firewall did not start: {tail or 'no output'}")
+
+
 @app.post("/v1/runs", dependencies=[Auth])
 def start(body: RunIn):
+    network = body.permissions.get("network", "target_scope")
+    if network not in ("none", "public", "target_scope"):
+        raise HTTPException(422, f"Unknown network mode {network}.")
     if not slots.acquire(blocking=False):
         raise HTTPException(429, "Runner is busy. Try again in a moment.")
+    fw = None
     try:
         d = engine()
         ensure_network(d)
-        cfg = container_config(body.resources, body.input, EXTRA_ENV, body.permissions)
+        mode = None
+        if network != "none":
+            fw = start_firewall(d, network, body.input)
+            mode = f"container:{fw.id}"
+        cfg = container_config(body.resources, body.input, EXTRA_ENV, body.permissions, network_mode=mode)
         container = d.containers.run(body.digest, **cfg)
     except Exception as e:  # noqa: BLE001
         slots.release()
+        if fw is not None:
+            fw.remove(force=True)
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(500, f"Could not start the plugin: {e}") from None
     return StreamingResponse(
-        stream(container, int(body.resources["timeout_seconds"])), media_type="application/x-ndjson"
+        stream(container, int(body.resources["timeout_seconds"]), fw), media_type="application/x-ndjson"
     )
 
 
@@ -124,7 +173,7 @@ def killer(container, timed_out: threading.Event):
     return kill
 
 
-def stream(container, timeout: int):
+def stream(container, timeout: int, firewall=None):
     timed_out = threading.Event()
     timer = threading.Timer(timeout, killer(container, timed_out))
     timer.start()
@@ -155,4 +204,9 @@ def stream(container, timeout: int):
             container.remove(force=True)
         except NotFound:
             pass
+        if firewall is not None:
+            try:
+                firewall.remove(force=True)
+            except NotFound:
+                pass
         slots.release()

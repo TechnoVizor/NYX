@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 from app.contract import load_manifest, validate_event, validate_manifest
 
@@ -123,3 +124,31 @@ def test_sdk_streams_events_while_the_tool_runs(tmp_path):
     proc.wait(timeout=30)
     assert '"asset"' in first
     assert first_at < 3, f"first event after {first_at:.1f}s: the SDK waits for the tool to finish"
+
+
+TEMPLATE = Path(__file__).resolve().parents[2] / "plugins" / "_template" / "plugin.yaml"
+
+
+def manifest(risk, network):
+    m = yaml.safe_load(TEMPLATE.read_text())
+    m["classification"]["risk_level"] = risk
+    m["permissions"]["network"] = network
+    return m
+
+
+@pytest.mark.parametrize(
+    "risk,network,ok",
+    [
+        ("passive", "public", True),
+        ("passive", "target_scope", True),
+        ("passive", "none", True),
+        ("safe_active", "public", False),
+        ("active", "public", False),
+        ("intrusive", "public", False),
+        ("safe_active", "target_scope", True),
+        ("active", "none", True),
+        ("passive", "internet", False),
+    ],
+)
+def test_network_mode_rules(risk, network, ok):
+    assert (validate_manifest(manifest(risk, network)) == []) is ok

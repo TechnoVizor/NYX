@@ -1,14 +1,20 @@
 """How a plugin container is allowed to run. One pure function so every flag is visible and tested."""
 
 import json
+from urllib.parse import urlsplit
 
 from docker.types import LogConfig
 
 NETWORK = "nyx-plugins"
+EGRESS_IMAGE = "nyx-egress:1"
 
 
 def container_config(
-    resources: dict, input: dict, extra_env: dict | None = None, permissions: dict | None = None
+    resources: dict,
+    input: dict,
+    extra_env: dict | None = None,
+    permissions: dict | None = None,
+    network_mode: str | None = None,
 ) -> dict:
     cfg = {
         "detach": True,
@@ -30,4 +36,42 @@ def container_config(
     if (permissions or {}).get("network") == "none":
         del cfg["network"]
         cfg["network_mode"] = "none"
+    if network_mode is not None:  # the plugin lives in its firewall's network namespace
+        del cfg["network"]
+        cfg["network_mode"] = network_mode
     return cfg
+
+
+def egress_allow(targets: list[dict]) -> list[str]:
+    """What the firewall lets the plugin reach: hosts for URLs, values as they are for the rest."""
+    out: list[str] = []
+    for t in targets:
+        value = t.get("value")
+        if t.get("type") == "url" and value:
+            # Same rule as the API's scope check: a URL typed without a scheme still has a host.
+            value = urlsplit(value if "://" in value else f"//{value}").hostname
+        if value and value not in out:
+            out.append(value)
+    return out
+
+
+def egress_config(mode: str, allow: list[str], run_id: str, deny: list[str] | None = None) -> dict:
+    """The firewall container. Root inside (iptables needs it) with NET_ADMIN as its only capability."""
+    return {
+        "detach": True,
+        "read_only": True,
+        "tmpfs": {"/run": "size=1m"},  # iptables' lock file
+        "cap_drop": ["ALL"],
+        "cap_add": ["NET_ADMIN"],
+        "security_opt": ["no-new-privileges"],
+        "mem_limit": "32m",
+        "pids_limit": 32,
+        "network": NETWORK,
+        "log_config": LogConfig(type="json-file", config={"max-size": "1m", "max-file": "1"}),
+        "environment": {
+            "NYX_EGRESS_MODE": mode,
+            "NYX_EGRESS_ALLOW": " ".join(allow),
+            "NYX_EGRESS_DENY": " ".join(deny or []),
+        },
+        "labels": {"nyx.run_id": run_id, "nyx.role": "egress"},
+    }

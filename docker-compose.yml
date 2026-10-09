@@ -93,6 +93,7 @@ services:
     restart: unless-stopped
     environment:
       NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
+      NYX_RUNNER_EGRESS_DENY: ${NYX_RUNNER_EGRESS_DENY:-}  # e.g. this server's public IP; see README
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     # No ports, and only the API shares a network with it.
@@ -101,6 +102,12 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/healthz')"]
       interval: 3s
       retries: 20
+
+  egress:
+    # The per-run egress firewall the runner puts in front of every networked plugin.
+    profiles: ["plugins"]
+    image: nyx-egress:1
+    build: ./runner/egress
 
   plugin-subfinder:
     profiles: ["plugins"]

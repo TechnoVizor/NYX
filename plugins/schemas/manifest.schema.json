@@ -196,6 +196,7 @@
         "network": {
           "enum": [
             "none",
+            "public",
             "target_scope"
           ]
         },
@@ -230,5 +231,42 @@
     "config_schema": {
       "type": "object"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "classification": {
+            "properties": {
+              "risk_level": {
+                "not": {
+                  "const": "passive"
+                }
+              }
+            },
+            "required": [
+              "risk_level"
+            ]
+          }
+        },
+        "required": [
+          "classification"
+        ]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "network": {
+                "enum": [
+                  "none",
+                  "target_scope"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

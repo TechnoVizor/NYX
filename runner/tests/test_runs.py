@@ -33,6 +33,7 @@ def run(c, digest, timeout=30, env=None):
         "digest": digest,
         "resources": {"cpu": 0.5, "memory_mb": 64, "timeout_seconds": timeout},
         "input": {"run_id": "r1", **(env or {})},
+        "permissions": {"network": "none"},  # these tests are about streaming, not egress (see test_egress.py)
     }
     r = c.post("/v1/runs", json=body, headers=H)
     return r.status_code, [json.loads(line) if line.startswith("{") else line for line in r.text.splitlines() if line]
