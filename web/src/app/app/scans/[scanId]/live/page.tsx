@@ -1,9 +1,7 @@
-import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Scan live" };
-
+// No separate live view until events stream over SSE: the overview polls while the scan runs.
 export default async function Page(props: PageProps<"/app/scans/[scanId]/live">) {
   const { scanId } = await props.params;
-  return <PlaceholderPage title={`Scan live ${scanId}`} route={`/app/scans/${scanId}/live`} />;
+  redirect(`/app/scans/${scanId}`);
 }

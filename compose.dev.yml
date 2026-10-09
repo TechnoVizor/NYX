@@ -1,6 +1,7 @@
-# Host-side development only: publishes Postgres and the API on 127.0.0.1 so uvicorn, alembic and pytest
-# on your machine can reach them. While this is in use, plugin containers can reach them too.
-#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner
+# Host-side development only: publishes Postgres, the API, the runner and Temporal (Web UI on :8233) on 127.0.0.1
+# so uvicorn, alembic, pytest and the worker on your machine can reach them. While this is in use, plugin
+# containers can reach them too.
+#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres runner temporal
 services:
   postgres:
     ports:
@@ -11,3 +12,7 @@ services:
   runner:
     ports:
       - "127.0.0.1:8100:8100"
+  temporal:
+    ports:
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"   # Temporal Web UI

@@ -2,16 +2,18 @@
 
 import json
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from time import monotonic
 
-from sqlalchemy import update
+from sqlalchemy import delete
 
 from app.config import settings
 from app.contract import validate_event
 from app.db import SessionLocal
 from app.models import PluginEvent, PluginRun, PluginVersion
 from app.runner import RunnerClient, RunnerError
+from app.scans import harvest
 
 FINAL = ("SUCCEEDED", "FAILED", "TIMED_OUT")
 
@@ -43,12 +45,17 @@ def _scrub(value):
     return value
 
 
-def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
+def execute_run(run_id: uuid.UUID, runner: RunnerClient, cancelled: Callable[[], bool] = lambda: False) -> None:
     with SessionLocal() as db:
         run = db.get(PluginRun, run_id)
         version = db.get(PluginVersion, run.plugin_version_id)
         m = version.manifest
-        run.status, run.started_at = "RUNNING", _now()
+        if run.attempt > 0:
+            # A previous attempt died mid-stream: its events are partial and its container may still be running.
+            db.execute(delete(PluginEvent).where(PluginEvent.run_id == run.id))
+            runner.cancel(str(run.id))
+        run.attempt += 1
+        run.status, run.started_at, run.error, run.exit_code = "RUNNING", _now(), None, None
         db.commit()
         body = {
             "image": version.image,
@@ -59,7 +66,8 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
                 "run_id": str(run.id),
                 "plugin_id": version.plugin_id,
                 "plugin_version": version.version,
-                "target": run.target,
+                "targets": run.targets,
+                "target": run.targets[0],  # single-target adapters read this one
                 "config": {},
                 "rate_limit": m["limits"]["default_rate_limit"],
             },
@@ -88,6 +96,7 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
                 db.commit()
                 last_commit = monotonic()
 
+        retry = None
         lines = runner.run(body)
         try:
             for line in lines:
@@ -105,7 +114,7 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
                 store(line, doc, ok)
             trailer = pending[1]["runner"] if pending and isinstance(pending[1]["runner"], dict) else None
         except RunnerError as e:
-            run.status, run.error = "FAILED", str(e)
+            retry = e  # infrastructure, not the plugin: the caller (Temporal) retries the whole batch
         except _TooMuchOutput:
             run.status, run.error = "FAILED", f"Too much output: stopped after {seq} events."
         except Exception:  # noqa: BLE001  never leave a run RUNNING because one line could not be stored
@@ -131,15 +140,13 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient) -> None:
             if close:
                 close()
         run.event_count = db.query(PluginEvent).filter(PluginEvent.run_id == run.id).count()
+        if retry is not None:
+            run.status, run.error, run.started_at = "PENDING", str(retry), None
+            db.commit()
+            raise retry
+        if cancelled():
+            run.status, run.error = "CANCELLED", "Cancelled."
         run.finished_at = _now()
         db.commit()
-
-
-def fail_interrupted_runs(db) -> int:
-    result = db.execute(
-        update(PluginRun)
-        .where(PluginRun.status.in_(("PENDING", "RUNNING")))
-        .values(status="FAILED", error="Interrupted by restart.", finished_at=_now())
-    )
-    db.commit()
-    return result.rowcount
+        if run.scan_id is not None:
+            harvest(db, run)

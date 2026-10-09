@@ -2,10 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import type { RunStatus } from "@/lib/types";
+import { scanFinal, type RunStatus, type ScanStatus } from "@/lib/types";
 
-export const useScans = () => useQuery({ queryKey: ["scans"], queryFn: api.listScans });
-export const useScan = (id: string) => useQuery({ queryKey: ["scans", id], queryFn: () => api.getScan(id) });
+export const scanLive = (s?: ScanStatus) => !!s && !scanFinal.includes(s);
+
+export const useScans = () => useQuery({ queryKey: ["scans"], queryFn: api.listScans, refetchInterval: 5000 });
+export const useScan = (id: string) =>
+  useQuery({ queryKey: ["scans", id], queryFn: () => api.getScan(id), refetchInterval: (q) => (scanLive(q.state.data?.status) ? 2000 : false) });
+export const useScanRuns = (id: string, polling: boolean) =>
+  useQuery({ queryKey: ["scans", id, "runs"], queryFn: () => api.scanRuns(id), refetchInterval: polling ? 2000 : false });
+// ponytail: first 500 targets only; page with ?after= when scans routinely find more.
+export const useScanTargets = (id: string, polling: boolean) =>
+  useQuery({ queryKey: ["scans", id, "targets"], queryFn: () => api.scanTargets(id), refetchInterval: polling ? 2000 : false });
 export const useFindings = () => useQuery({ queryKey: ["findings"], queryFn: api.listFindings });
 export const useFinding = (id: string) => useQuery({ queryKey: ["findings", id], queryFn: () => api.getFinding(id) });
 export const useMe = () => useQuery({ queryKey: ["me"], queryFn: api.me, retry: false, staleTime: Infinity });

@@ -1,16 +1,19 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 
+from app import scans
 from app.models import Plugin, PluginInstallation, PluginRun, PluginVersion, ScopeTarget, User
+from app.registry import installed_plugins
+from app.routes.common import Target
 from app.routes.runs import RunOut, run_out
-from app.runner import RunnerClient, get_runner
-from app.runs import execute_run
+from app.routes.scans import launch
 from app.scope import find_entry, normalized_target, refusal
 from app.security import DB, current_user, require_role
+from app.temporal import get_temporal
 
 router = APIRouter(prefix="/api/v1/plugins", tags=["plugins"])
 Anyone = Annotated[User, Depends(current_user)]
@@ -59,16 +62,8 @@ def _row(p: Plugin, v: PluginVersion, i: PluginInstallation) -> dict:
     }
 
 
-def _query():
-    return (
-        select(Plugin, PluginVersion, PluginInstallation)
-        .join(PluginInstallation, PluginInstallation.plugin_id == Plugin.id)
-        .join(PluginVersion, PluginVersion.id == PluginInstallation.plugin_version_id)
-    )
-
-
 def installed(db, plugin_id: str):
-    row = db.execute(_query().where(Plugin.id == plugin_id)).first()
+    row = db.execute(installed_plugins().where(Plugin.id == plugin_id)).first()
     if row is None:
         raise HTTPException(404, "No such plugin.")
     return row
@@ -76,7 +71,7 @@ def installed(db, plugin_id: str):
 
 @router.get("", response_model=list[PluginOut])
 def list_plugins(db: DB, _: Anyone):
-    return [_row(*r) for r in db.execute(_query().order_by(Plugin.name)).all()]
+    return [_row(*r) for r in db.execute(installed_plugins().order_by(Plugin.name)).all()]
 
 
 @router.get("/{plugin_id}", response_model=PluginDetailOut)
@@ -101,11 +96,6 @@ def patch_plugin(plugin_id: str, body: PluginPatch, db: DB, _: Admin):
     return _row(p, v, i)
 
 
-class Target(BaseModel):
-    type: Literal["domain", "ip", "cidr", "url"]
-    value: str = Field(min_length=1, max_length=2000)
-
-
 class RunIn(BaseModel):
     target: Target
 
@@ -116,8 +106,7 @@ def start_run(
     body: RunIn,
     db: DB,
     user: Operator,
-    background: BackgroundTasks,
-    runner: Annotated[RunnerClient, Depends(get_runner)],
+    engine: Annotated[object, Depends(get_temporal)],
 ):
     p, v, i = installed(db, plugin_id)
     if not i.enabled:
@@ -133,8 +122,16 @@ def start_run(
     entry = find_entry(target["type"], target["value"], db.scalars(select(ScopeTarget)).all())
     if reason := refusal(p.risk_level, target["value"], entry):
         raise HTTPException(403, reason)
-    run = PluginRun(plugin_version_id=v.id, target=target, status="PENDING", requested_by=user.id, event_count=0)
+    scan = scans.create_scan(db, target, [plugin_id], 0, user.id)
+    run = PluginRun(
+        plugin_version_id=v.id,
+        scan_id=scan.id,
+        targets=[target],
+        status="PENDING",
+        attempt=0,
+        requested_by=user.id,
+        event_count=0,
+    )
     db.add(run)
-    db.commit()
-    background.add_task(execute_run, run.id, runner)
+    launch(db, scan, engine)
     return run_out(run, v)

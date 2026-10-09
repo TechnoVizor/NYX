@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     runner_url: str = "http://127.0.0.1:8100"
     runner_token: str = ""
     max_events_per_run: int = 200_000
+    temporal_address: str = "127.0.0.1:7233"
 
 
 settings = Settings()

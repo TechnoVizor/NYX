@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { PageHeader } from "@/components/shared/page-header";
+import { NewScanForm } from "@/components/scans/new-scan-form";
 
 export const metadata: Metadata = { title: "New Scan" };
 
 export default function Page() {
-  return <PlaceholderPage title="New Scan" description="Five-step builder: target, profile, plugins, scope and budget, review." route="/app/scans/new" />;
+  return (
+    <>
+      <PageHeader title="New scan" description="Pick a target in scope and the plugins to run. I hand everything I find to every plugin that can use it." />
+      <NewScanForm />
+    </>
+  );
 }

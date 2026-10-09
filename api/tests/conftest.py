@@ -20,7 +20,10 @@ from app.config import settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
-TABLES = "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, plugin_runs, plugin_events"
+TABLES = (
+    "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, "
+    "scans, scan_targets, plugin_runs, plugin_events"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -55,9 +58,13 @@ class StubRunner:
         self.lines = lines or []
         self.error = error
         self.calls = []
+        self.cancelled = []
 
     def digest(self, image):
         return self.digests.get(image)
+
+    def cancel(self, run_id):
+        self.cancelled.append(run_id)
 
     def run(self, body):
         self.calls.append(body)
@@ -67,10 +74,82 @@ class StubRunner:
 
 
 @pytest.fixture
-def runner():
+def runner(monkeypatch):
     from app.runner import get_runner
 
     stub = StubRunner()
     app.dependency_overrides[get_runner] = lambda: stub
+    monkeypatch.setattr("app.runner.get_runner", lambda: stub)
     yield stub
     app.dependency_overrides.pop(get_runner, None)
+
+
+def drive_scan(scan_id: str) -> None:
+    """What ScanWorkflow does, inline and in order: plan, run every batch, repeat, finalize. No pause/cancel."""
+    import uuid
+
+    from app import runner as runner_mod
+    from app import scans
+    from app.db import SessionLocal
+    from app.runner import RunnerError
+    from app.runs import execute_run
+
+    sid, done = uuid.UUID(scan_id), set()
+    with SessionLocal() as db:
+        scans.set_status(db, sid, "RUNNING")
+    while True:
+        with SessionLocal() as db:
+            ids = [i for i in scans.plan(db, sid) if i not in done]
+        if not ids:
+            break
+        for i in ids:
+            done.add(i)
+            try:
+                execute_run(uuid.UUID(i), runner_mod.get_runner())
+            except RunnerError as e:  # the real workflow retries 5 times first
+                with SessionLocal() as db:
+                    scans.mark_failed(db, uuid.UUID(i), str(e))
+    with SessionLocal() as db:
+        scans.finalize(db, sid, False)
+
+
+class FakeTemporal:
+    """Stands in for the Temporal client. drive=True runs a started scan inline (see drive_scan)."""
+
+    def __init__(self):
+        self.drive, self.down, self.handle_error = True, False, None
+        self.started, self.signals, self.cancelled = [], [], []
+
+    async def start_workflow(self, workflow, scan_id, *, id, task_queue):
+        if self.down:
+            raise RuntimeError("temporal is down")
+        assert (workflow, id, task_queue) == ("ScanWorkflow", f"scan-{scan_id}", "nyx-scans")
+        self.started.append(scan_id)
+        if self.drive:
+            drive_scan(scan_id)
+
+    def get_workflow_handle(self, workflow_id):
+        fake = self
+
+        class Handle:
+            async def signal(self, name):
+                if fake.handle_error:
+                    raise fake.handle_error
+                fake.signals.append((workflow_id, name))
+
+            async def cancel(self):
+                if fake.handle_error:
+                    raise fake.handle_error
+                fake.cancelled.append(workflow_id)
+
+        return Handle()
+
+
+@pytest.fixture(autouse=True)
+def temporal():
+    from app.temporal import get_temporal
+
+    fake = FakeTemporal()
+    app.dependency_overrides[get_temporal] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_temporal, None)

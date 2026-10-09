@@ -60,3 +60,12 @@ def sync_plugins(db: Session, runner: RunnerClient, root: Path | None = None) ->
         synced.append(meta["id"])
     db.commit()
     return synced
+
+
+def installed_plugins():
+    """Every plugin with its installed version and installation row."""
+    return (
+        select(Plugin, PluginVersion, PluginInstallation)
+        .join(PluginInstallation, PluginInstallation.plugin_id == Plugin.id)
+        .join(PluginVersion, PluginVersion.id == PluginInstallation.plugin_version_id)
+    )

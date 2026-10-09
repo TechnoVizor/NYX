@@ -23,6 +23,13 @@ class RunnerClient:
             return None
         return r.json()["digest"] if r.status_code == 200 else None
 
+    def cancel(self, run_id: str) -> None:
+        """Kill the run's container if it is still there. Best effort: callers move on either way."""
+        try:
+            httpx.delete(f"{self.url}/v1/runs/{run_id}", headers=self.headers, timeout=10)
+        except httpx.HTTPError:
+            pass
+
     def run(self, body: dict) -> Iterator[str]:
         timeout = httpx.Timeout(10, read=body["resources"]["timeout_seconds"] + 30)
         try:
