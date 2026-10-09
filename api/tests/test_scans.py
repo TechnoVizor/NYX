@@ -25,6 +25,7 @@ def make_plugins(tmp_path, runner, specs):
         m["metadata"].update({"id": pid, "name": pid})
         m["runtime"]["image"] = f"nyx-plugin/{pid}:0.1.0"
         m["classification"]["risk_level"] = risk
+        m["permissions"]["network"] = "public" if risk == "passive" else "target_scope"  # the schema's rule
         m["io"]["accepts"] = accepts
         (root / pid).mkdir()
         (root / pid / "plugin.yaml").write_text(yaml.safe_dump(m))

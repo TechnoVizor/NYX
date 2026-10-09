@@ -60,7 +60,7 @@ def test_run_stores_events_and_succeeds(client, runner, plugin):
     assert e["valid"] is True
     assert e["payload"]["data"]["value"] == "a.example.com"
     assert runner.calls[0]["digest"] == "sha256:aaa"
-    assert runner.calls[0]["permissions"]["network"] == "target_scope"
+    assert runner.calls[0]["permissions"]["network"] == "public"  # the template is a passive plugin
     assert runner.calls[0]["input"]["target"] == {"type": "domain", "value": "a.example.com"}
 
 
