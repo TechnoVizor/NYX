@@ -22,7 +22,7 @@ resources:
   memory_mb: 128
   timeout_seconds: 120
 permissions:
-  network: target_scope
+  network: public
   filesystem: temporary
   raw_socket: false
   host_mounts: false

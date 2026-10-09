@@ -23,7 +23,8 @@ resources:
   memory_mb: 128
   timeout_seconds: 60
 permissions:
-  network: target_scope
+  # public: internet except private ranges (passive plugins only). target_scope: only this run's targets. none: no network.
+  network: public
   filesystem: temporary
   raw_socket: false
   host_mounts: false
