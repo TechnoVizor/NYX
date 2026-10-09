@@ -74,7 +74,7 @@ export function RunPanel({ plugin }: { plugin: PluginDetail }) {
   );
 }
 
-function EventList({ events }: { events: PluginEvent[] }) {
+export function EventList({ events }: { events: PluginEvent[] }) {
   if (!events.length) return null;
   return (
     <ol className="mt-3 max-h-96 overflow-y-auto rounded-md border border-border font-mono text-xs">

@@ -1,8 +1,8 @@
-import { findings, scans } from "@/lib/mocks/data";
-import type { Credentials, Finding, PluginDetail, PluginEvent, PluginRun, PluginSummary, Scan, ScopeEntry, ScopeInput, Target, User } from "@/lib/types";
+import { findings } from "@/lib/mocks/data";
+import type { Credentials, Finding, PluginDetail, PluginEvent, PluginRun, PluginSummary, Scan, ScanDetail, ScanInput, ScanTarget, ScopeEntry, ScopeInput, Target, User } from "@/lib/types";
 
 // The only module that knows where data comes from. Auth talks to the real API through the /api rewrite;
-// scans, findings and plugins are still mocks until the scan engine lands.
+// findings are still mocks until the risk engine lands.
 const delay = <T,>(value: T, ms = 120) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
 export class ApiError extends Error {
@@ -41,8 +41,14 @@ export const api = {
   login: (body: Credentials) => post<User>("/auth/login", body),
   signup: (body: Credentials) => post<User>("/auth/signup", body),
   logout: () => post<void>("/auth/logout"),
-  listScans: (): Promise<Scan[]> => delay(scans),
-  getScan: (id: string): Promise<Scan | undefined> => delay(scans.find((s) => s.id === id)),
+  listScans: () => call<Scan[]>("/scans"),
+  getScan: (id: string) => call<ScanDetail>(`/scans/${id}`),
+  startScan: (body: ScanInput) => post<Scan>("/scans", body),
+  scanRuns: (id: string) => call<PluginRun[]>(`/scans/${id}/runs`),
+  scanTargets: (id: string) => call<ScanTarget[]>(`/scans/${id}/targets`),
+  pauseScan: (id: string) => post<Scan>(`/scans/${id}/pause`),
+  resumeScan: (id: string) => post<Scan>(`/scans/${id}/resume`),
+  cancelScan: (id: string) => post<Scan>(`/scans/${id}/cancel`),
   listFindings: (): Promise<Finding[]> => delay(findings),
   getFinding: (id: string): Promise<Finding | undefined> => delay(findings.find((f) => f.id === id)),
   listPlugins: () => call<PluginSummary[]>("/plugins"),
