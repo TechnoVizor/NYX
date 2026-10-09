@@ -4,10 +4,8 @@ from pathlib import Path
 import pytest
 
 from app.db import SessionLocal
-from app.models import PluginRun
 from app.registry import sync_plugins
 from app.runner import RunnerError
-from app.runs import fail_interrupted_runs
 
 REPO = Path(__file__).resolve().parents[2] / "plugins"
 
@@ -89,7 +87,6 @@ def test_missing_trailer_fails(client, runner, plugin):
     assert run["status"] == "FAILED"
 
 
-@pytest.mark.xfail(reason="single runs move onto scans in Task 7", strict=True)
 def test_runner_unreachable_fails_the_run(client, runner, plugin):
     runner.error = RunnerError("Runner unreachable.")
     run = client.get(f"/api/v1/runs/{start(client, plugin).json()['id']}").json()
@@ -130,17 +127,6 @@ def test_recent_runs_on_plugin_page(client, runner, plugin):
     runner.lines = [trailer(0)]
     start(client, plugin)
     assert len(client.get(f"/api/v1/plugins/{plugin}").json()["runs"]) == 1
-
-
-def test_interrupted_runs_fail_on_startup(client, runner, plugin):
-    runner.lines = [trailer(0)]
-    run_id = start(client, plugin).json()["id"]
-    with SessionLocal() as db:
-        db.get(PluginRun, run_id).status = "RUNNING"
-        db.commit()
-        assert fail_interrupted_runs(db) == 1
-    run = client.get(f"/api/v1/runs/{run_id}").json()
-    assert (run["status"], run["error"]) == ("FAILED", "Interrupted by restart.")
 
 
 def test_viewer_cannot_start_runs(client, runner, plugin):
@@ -223,3 +209,12 @@ def test_large_runs_are_stored_quickly(client, runner, plugin):
     run = client.get(f"/api/v1/runs/{run_id}").json()
     assert (run["status"], run["event_count"]) == ("SUCCEEDED", 20_000)
     assert elapsed < 30, f"20k events took {elapsed:.1f}s"
+
+
+def test_single_run_is_a_one_plugin_scan(client, runner, plugin, temporal):
+    runner.lines = [event, trailer(0)]
+    run = start(client, plugin).json()
+    assert run["scan_id"] and temporal.started == [run["scan_id"]]
+    scan = client.get(f"/api/v1/scans/{run['scan_id']}").json()
+    assert (scan["plugin_ids"], scan["max_depth"], scan["status"]) == ([plugin], 0, "COMPLETED")
+    assert len(client.get(f"/api/v1/scans/{run['scan_id']}/runs").json()) == 1  # found assets are not chained

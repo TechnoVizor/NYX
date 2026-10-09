@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from time import monotonic
 
-from sqlalchemy import delete, update
+from sqlalchemy import delete
 
 from app.config import settings
 from app.contract import validate_event
@@ -150,13 +150,3 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient, cancelled: Callable[[],
         db.commit()
         if run.scan_id is not None:
             harvest(db, run)
-
-
-def fail_interrupted_runs(db) -> int:
-    result = db.execute(
-        update(PluginRun)
-        .where(PluginRun.status.in_(("PENDING", "RUNNING")))
-        .values(status="FAILED", error="Interrupted by restart.", finished_at=_now())
-    )
-    db.commit()
-    return result.rowcount

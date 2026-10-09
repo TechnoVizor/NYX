@@ -74,10 +74,78 @@ class StubRunner:
 
 
 @pytest.fixture
-def runner():
+def runner(monkeypatch):
     from app.runner import get_runner
 
     stub = StubRunner()
     app.dependency_overrides[get_runner] = lambda: stub
+    monkeypatch.setattr("app.runner.get_runner", lambda: stub)
     yield stub
     app.dependency_overrides.pop(get_runner, None)
+
+
+def drive_scan(scan_id: str) -> None:
+    """What ScanWorkflow does, inline and in order: plan, run every batch, repeat, finalize. No pause/cancel."""
+    import uuid
+
+    from app import runner as runner_mod
+    from app import scans
+    from app.db import SessionLocal
+    from app.runner import RunnerError
+    from app.runs import execute_run
+
+    sid, done = uuid.UUID(scan_id), set()
+    with SessionLocal() as db:
+        scans.set_status(db, sid, "RUNNING")
+    while True:
+        with SessionLocal() as db:
+            ids = [i for i in scans.plan(db, sid) if i not in done]
+        if not ids:
+            break
+        for i in ids:
+            done.add(i)
+            try:
+                execute_run(uuid.UUID(i), runner_mod.get_runner())
+            except RunnerError as e:  # the real workflow retries 5 times first
+                with SessionLocal() as db:
+                    scans.mark_failed(db, uuid.UUID(i), str(e))
+    with SessionLocal() as db:
+        scans.finalize(db, sid, False)
+
+
+class FakeTemporal:
+    """Stands in for the Temporal client. drive=True runs a started scan inline (see drive_scan)."""
+
+    def __init__(self):
+        self.drive, self.down = True, False
+        self.started, self.signals, self.cancelled = [], [], []
+
+    async def start_workflow(self, workflow, scan_id, *, id, task_queue):
+        if self.down:
+            raise RuntimeError("temporal is down")
+        assert (workflow, id, task_queue) == ("ScanWorkflow", f"scan-{scan_id}", "nyx-scans")
+        self.started.append(scan_id)
+        if self.drive:
+            drive_scan(scan_id)
+
+    def get_workflow_handle(self, workflow_id):
+        fake = self
+
+        class Handle:
+            async def signal(self, name):
+                fake.signals.append((workflow_id, name))
+
+            async def cancel(self):
+                fake.cancelled.append(workflow_id)
+
+        return Handle()
+
+
+@pytest.fixture(autouse=True)
+def temporal():
+    from app.temporal import get_temporal
+
+    fake = FakeTemporal()
+    app.dependency_overrides[get_temporal] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_temporal, None)
