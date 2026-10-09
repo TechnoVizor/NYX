@@ -10,6 +10,25 @@ if ip6tables -L >/dev/null 2>&1; then v6() { ip6tables "$@" || fail "ip6tables $
 PRIVATE4="10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10 169.254.0.0/16 127.0.0.0/8 0.0.0.0/8 224.0.0.0/4"
 PRIVATE6="fc00::/7 fe80::/10 ff00::/8 ::/128"
 
+# Never reachable, whatever a name resolves to: the host (this namespace's gateway), link-local (cloud metadata),
+# and whatever the operator lists in NYX_EGRESS_DENY (e.g. the server's public IP).
+GATEWAY=$(ip -4 route show default | awk '{print $3; exit}')
+SUBNET=$(ip -4 route show scope link | awk '{print $1; exit}')
+
+drop() {  # one address or network
+  case "$1" in
+    *:*) v6 -A OUTPUT -d "$1" -j DROP ;;
+    *) v4 -A OUTPUT -d "$1" -j DROP ;;
+  esac
+}
+
+deny_always() {
+  drop 169.254.0.0/16
+  drop fe80::/10
+  [ -n "$GATEWAY" ] && drop "$GATEWAY"
+  for d in ${NYX_EGRESS_DENY:-}; do drop "$d"; done
+}
+
 allow() {  # one address or network
   case "$1" in
     *:*) v6 -A OUTPUT -d "$1" -j ACCEPT ;;
@@ -26,6 +45,7 @@ case "${NYX_EGRESS_MODE:-}" in
       $t -A OUTPUT -o lo -j ACCEPT
       $t -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
     done
+    deny_always  # before any allow: a scoped name pointing at metadata or the host opens nothing
     for entry in ${NYX_EGRESS_ALLOW:-}; do
       if is_address "$entry"; then
         allow "$entry"
@@ -39,6 +59,8 @@ case "${NYX_EGRESS_MODE:-}" in
   public)
     v4 -P OUTPUT ACCEPT
     v4 -A OUTPUT -o lo -j ACCEPT
+    deny_always
+    [ -n "$SUBNET" ] && drop "$SUBNET"  # the plugin network itself, even when Docker's pool is outside RFC1918
     for n in $PRIVATE4; do v4 -A OUTPUT -d "$n" -j DROP; done
     v6 -P OUTPUT ACCEPT
     v6 -A OUTPUT -o lo -j ACCEPT

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="NYX_RUNNER_")
     token: str = ""
     max_runs: int = 4
+    # Addresses no plugin may reach in any mode, e.g. this server's public IP (space-separated IPs/CIDRs).
+    egress_deny: str = ""
 
 
 settings = Settings()
@@ -91,7 +93,10 @@ def start_firewall(d, network: str, input: dict):
     targets = input.get("targets") or ([input["target"]] if input.get("target") else [])
     try:
         fw = d.containers.run(
-            EGRESS_IMAGE, **egress_config(egress_mode(network), egress_allow(targets), str(input.get("run_id", "")))
+            EGRESS_IMAGE,
+            **egress_config(
+                egress_mode(network), egress_allow(targets), str(input.get("run_id", "")), settings.egress_deny.split()
+            ),
         )
     except ImageNotFound:
         raise HTTPException(

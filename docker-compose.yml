@@ -93,6 +93,7 @@ services:
     restart: unless-stopped
     environment:
       NYX_RUNNER_TOKEN: ${NYX_RUNNER_TOKEN:-nyx-local-runner-token}
+      NYX_RUNNER_EGRESS_DENY: ${NYX_RUNNER_EGRESS_DENY:-}  # e.g. this server's public IP; see README
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     # No ports, and only the API shares a network with it.

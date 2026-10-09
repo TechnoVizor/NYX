@@ -21,15 +21,16 @@ def image():
     return "nyx-egress:1"
 
 
-def start(image, mode, allow=""):
+def start(image, mode, allow="", deny="", hosts=None):
     c = client.containers.run(
         image,
         detach=True,
+        extra_hosts=hosts or {},
         cap_drop=["ALL"],
         cap_add=["NET_ADMIN"],
         read_only=True,
         tmpfs={"/run": "size=1m"},
-        environment={"NYX_EGRESS_MODE": mode, "NYX_EGRESS_ALLOW": allow},
+        environment={"NYX_EGRESS_MODE": mode, "NYX_EGRESS_ALLOW": allow, "NYX_EGRESS_DENY": deny},
     )
     for _ in range(100):
         c.reload()
@@ -95,5 +96,59 @@ def test_bad_mode_exits_without_ready(image):
         assert c.status == "exited"
         assert b"ready" not in c.logs(stdout=True, stderr=False)
         assert b"egress: unknown mode wide_open" in c.logs(stdout=False, stderr=True)
+    finally:
+        c.remove(force=True)
+
+
+def route(c, kind):
+    """The firewall namespace's default gateway ("default") or connected subnet ("link")."""
+    cmd = (
+        ["ip", "-4", "route", "show", "default"]
+        if kind == "default"
+        else ["ip", "-4", "route", "show", "scope", "link"]
+    )
+    words = c.exec_run(cmd).output.decode().split()
+    return words[2] if kind == "default" else words[0]
+
+
+def before(rules_text, first, second):
+    return rules_text.index(first) < rules_text.index(second)
+
+
+@needs_docker
+def test_target_scope_name_cannot_open_metadata_or_the_host(image):
+    # A scoped name whose record points at cloud metadata must not open it; nor may anything open the gateway (host).
+    c = start(image, "target_scope", "meta.test", hosts={"meta.test": "169.254.169.254"})
+    try:
+        r = rules(c)
+        gw = route(c, "default")
+        assert before(r, "-d 169.254.0.0/16 -j DROP", "-d 169.254.169.254/32 -j ACCEPT")
+        assert before(r, f"-d {gw}/32 -j DROP", "-d 169.254.169.254/32 -j ACCEPT")
+    finally:
+        c.remove(force=True)
+
+
+@needs_docker
+def test_public_blocks_the_host_and_its_networks(image):
+    c = start(image, "public")
+    try:
+        r = rules(c)
+        assert f"-d {route(c, 'default')}/32 -j DROP" in r
+        assert f"-d {route(c, 'link')} -j DROP" in r
+    finally:
+        c.remove(force=True)
+
+
+@needs_docker
+@pytest.mark.parametrize("mode", ["public", "target_scope"])
+def test_operator_deny_list_wins(image, mode):
+    c = start(image, mode, allow="203.0.113.7", deny="203.0.113.7 198.51.100.0/24")
+    try:
+        r = rules(c)
+        assert "-d 198.51.100.0/24 -j DROP" in r
+        if mode == "target_scope":
+            assert before(r, "-d 203.0.113.7/32 -j DROP", "-d 203.0.113.7/32 -j ACCEPT")
+        else:
+            assert "-d 203.0.113.7/32 -j DROP" in r
     finally:
         c.remove(force=True)

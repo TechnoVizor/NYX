@@ -46,13 +46,16 @@ def egress_allow(targets: list[dict]) -> list[str]:
     """What the firewall lets the plugin reach: hosts for URLs, values as they are for the rest."""
     out: list[str] = []
     for t in targets:
-        value = urlsplit(t["value"]).hostname if t.get("type") == "url" else t.get("value")
+        value = t.get("value")
+        if t.get("type") == "url" and value:
+            # Same rule as the API's scope check: a URL typed without a scheme still has a host.
+            value = urlsplit(value if "://" in value else f"//{value}").hostname
         if value and value not in out:
             out.append(value)
     return out
 
 
-def egress_config(mode: str, allow: list[str], run_id: str) -> dict:
+def egress_config(mode: str, allow: list[str], run_id: str, deny: list[str] | None = None) -> dict:
     """The firewall container. Root inside (iptables needs it) with NET_ADMIN as its only capability."""
     return {
         "detach": True,
@@ -65,6 +68,10 @@ def egress_config(mode: str, allow: list[str], run_id: str) -> dict:
         "pids_limit": 32,
         "network": NETWORK,
         "log_config": LogConfig(type="json-file", config={"max-size": "1m", "max-file": "1"}),
-        "environment": {"NYX_EGRESS_MODE": mode, "NYX_EGRESS_ALLOW": " ".join(allow)},
+        "environment": {
+            "NYX_EGRESS_MODE": mode,
+            "NYX_EGRESS_ALLOW": " ".join(allow),
+            "NYX_EGRESS_DENY": " ".join(deny or []),
+        },
         "labels": {"nyx.run_id": run_id, "nyx.role": "egress"},
     }
