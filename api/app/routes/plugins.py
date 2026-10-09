@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.models import Plugin, PluginInstallation, PluginRun, PluginVersion, ScopeTarget, User
+from app.registry import installed_plugins
 from app.routes.runs import RunOut, run_out
 from app.runner import RunnerClient, get_runner
 from app.runs import execute_run
@@ -59,16 +60,8 @@ def _row(p: Plugin, v: PluginVersion, i: PluginInstallation) -> dict:
     }
 
 
-def _query():
-    return (
-        select(Plugin, PluginVersion, PluginInstallation)
-        .join(PluginInstallation, PluginInstallation.plugin_id == Plugin.id)
-        .join(PluginVersion, PluginVersion.id == PluginInstallation.plugin_version_id)
-    )
-
-
 def installed(db, plugin_id: str):
-    row = db.execute(_query().where(Plugin.id == plugin_id)).first()
+    row = db.execute(installed_plugins().where(Plugin.id == plugin_id)).first()
     if row is None:
         raise HTTPException(404, "No such plugin.")
     return row
@@ -76,7 +69,7 @@ def installed(db, plugin_id: str):
 
 @router.get("", response_model=list[PluginOut])
 def list_plugins(db: DB, _: Anyone):
-    return [_row(*r) for r in db.execute(_query().order_by(Plugin.name)).all()]
+    return [_row(*r) for r in db.execute(installed_plugins().order_by(Plugin.name)).all()]
 
 
 @router.get("/{plugin_id}", response_model=PluginDetailOut)

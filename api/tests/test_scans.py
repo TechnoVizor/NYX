@@ -200,3 +200,140 @@ def test_batch_input_carries_all_targets(world):
     execute_run(run, world)
     assert world.calls[0]["input"]["targets"] == ts
     assert world.calls[0]["input"]["target"] == ts[0]
+
+
+from app import scans  # noqa: E402
+
+
+def plan(scan_id):
+    with SessionLocal() as db:
+        return scans.plan(db, scan_id)
+
+
+def runs_of(scan_id):
+    with SessionLocal() as db:
+        rows = db.execute(
+            select(PluginVersion.plugin_id, PluginRun)
+            .join(PluginRun, PluginRun.plugin_version_id == PluginVersion.id)
+            .where(PluginRun.scan_id == scan_id)
+        ).all()
+        return [(pid, r) for pid, r in rows]
+
+
+def test_plan_routes_by_accepts_and_gate(tmp_path, runner, client, admin):
+    make_plugins(
+        tmp_path,
+        runner,
+        {"t.dom": ("passive", ["domain"]), "t.ip": ("passive", ["ip"]), "t.act": ("safe_active", ["domain"])},
+    )
+    add_scope(client, "example.com", active=False)  # passive only: t.act is refused
+    scan = new_scan(["t.dom", "t.ip", "t.act"])
+    ids = plan(scan)
+    [(pid, run)] = runs_of(scan)
+    assert pid == "t.dom" and ids == [str(run.id)]
+    assert run.targets == [{"type": "domain", "value": "example.com"}]
+    assert targets_of(scan)[("domain", "example.com")].routed_at is not None
+
+
+def test_plan_is_idempotent(world):
+    scan = new_scan(["t.sub"])
+    first = plan(scan)
+    assert plan(scan) == first
+    assert len(runs_of(scan)) == 1
+
+
+def test_plan_cuts_batches_of_500(world):
+    scan = new_scan(["t.sub"], max_targets=2000)
+    with SessionLocal() as db:
+        db.get(ScanTarget, (scan, "domain", "example.com")).routed_at = scans._now()
+        for i in range(1200):
+            db.add(ScanTarget(scan_id=scan, type="domain", value=f"h{i}.example.com", depth=1, in_scope=True))
+        db.commit()
+    plan(scan)
+    sizes = sorted(len(r.targets) for pid, r in runs_of(scan) if pid == "t.sub")
+    assert sizes == [200, 500, 500]
+
+
+def test_plan_respects_max_depth_and_scope(world):
+    scan = new_scan(["t.sub"], max_depth=1)
+    with SessionLocal() as db:
+        db.add(ScanTarget(scan_id=scan, type="domain", value="a.example.com", depth=1, in_scope=True))
+        db.add(ScanTarget(scan_id=scan, type="domain", value="b.other.net", depth=0, in_scope=False))
+        db.commit()
+    plan(scan)
+    assert [r.targets for _, r in runs_of(scan)] == [[{"type": "domain", "value": "example.com"}]]
+
+
+def test_plugin_is_not_fed_its_own_output(world):
+    scan = new_scan(["t.sub", "t.http"])
+    run = add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}], status="SUCCEEDED")
+    with SessionLocal() as db:
+        db.get(ScanTarget, (scan, "domain", "example.com")).routed_at = scans._now()
+        db.add(
+            ScanTarget(scan_id=scan, type="domain", value="a.example.com", depth=1, in_scope=True, source_run_id=run)
+        )
+        db.commit()
+    plan(scan)
+    fed = {pid for pid, r in runs_of(scan) if r.status == "PENDING"}
+    assert fed == {"t.http"}
+
+
+def test_plan_skips_disabled_plugins(world, client):
+    client.patch("/api/v1/plugins/t.http", json={"enabled": False})
+    scan = new_scan(["t.sub", "t.http"])
+    plan(scan)
+    assert {pid for pid, _ in runs_of(scan)} == {"t.sub"}
+
+
+@pytest.mark.parametrize(
+    "statuses,cancelled,expected",
+    [
+        (["SUCCEEDED", "SUCCEEDED"], False, "COMPLETED"),
+        (["SUCCEEDED", "FAILED"], False, "PARTIAL"),
+        (["SUCCEEDED", "TIMED_OUT"], False, "PARTIAL"),
+        (["FAILED", "TIMED_OUT"], False, "FAILED"),
+        (["SUCCEEDED", "PENDING"], True, "CANCELLED"),
+    ],
+)
+def test_finalize(world, statuses, cancelled, expected):
+    scan = new_scan(["t.sub"])
+    for s in statuses:
+        add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}], status=s)
+    with SessionLocal() as db:
+        assert scans.finalize(db, scan, cancelled) == expected
+        s = db.get(Scan, scan)
+        assert s.status == expected and s.finished_at is not None
+    assert all(r.status != "PENDING" for _, r in runs_of(scan))
+
+
+def test_finalize_partial_when_capped(world):
+    scan = new_scan(["t.sub"])
+    add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}], status="SUCCEEDED")
+    with SessionLocal() as db:
+        db.get(Scan, scan).error = "Stopped at 5000 targets."
+        db.commit()
+        assert scans.finalize(db, scan, False) == "PARTIAL"
+
+
+def test_finalize_without_runs(world):
+    scan = new_scan(["t.sub"], root=("ip", "10.0.0.1"))
+    with SessionLocal() as db:
+        assert scans.finalize(db, scan, False) == "FAILED"
+        assert db.get(Scan, scan).error == "No selected plugin accepts this target."
+
+
+def test_set_status_never_reopens_a_finished_scan(world):
+    scan = new_scan(["t.sub"])
+    with SessionLocal() as db:
+        scans.set_status(db, scan, "CANCELLED")
+        scans.set_status(db, scan, "RUNNING")
+        assert db.get(Scan, scan).status == "CANCELLED"
+
+
+def test_mark_failed(world):
+    scan = new_scan(["t.sub"])
+    run = add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}])
+    with SessionLocal() as db:
+        scans.mark_failed(db, run, "Runner unreachable.")
+        r = db.get(PluginRun, run)
+        assert (r.status, r.error) == ("FAILED", "Runner unreachable.") and r.finished_at
