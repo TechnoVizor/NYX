@@ -177,8 +177,24 @@ def mark_failed(db: Session, run_id: uuid.UUID, message: str) -> None:
     db.commit()
 
 
-def create_scan(db: Session, root: dict, plugin_ids: list[str], max_depth: int, user_id) -> Scan:
-    scan = Scan(root_target=root, plugin_ids=plugin_ids, max_depth=max_depth, status="CREATED", requested_by=user_id)
+def create_scan(
+    db: Session,
+    root: dict,
+    plugin_ids: list[str],
+    max_depth: int,
+    user_id,
+    plugin_config: dict | None = None,
+    profile_id: uuid.UUID | None = None,
+) -> Scan:
+    scan = Scan(
+        root_target=root,
+        plugin_ids=plugin_ids,
+        max_depth=max_depth,
+        status="CREATED",
+        requested_by=user_id,
+        plugin_config=plugin_config or {},
+        profile_id=profile_id,
+    )
     db.add(scan)
     db.flush()
     db.add(ScanTarget(scan_id=scan.id, type=root["type"], value=root["value"], depth=0, in_scope=True))

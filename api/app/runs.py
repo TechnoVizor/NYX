@@ -11,7 +11,7 @@ from sqlalchemy import delete
 from app.config import settings
 from app.contract import validate_event
 from app.db import SessionLocal
-from app.models import PluginEvent, PluginRun, PluginVersion
+from app.models import PluginEvent, PluginRun, PluginVersion, Scan
 from app.runner import RunnerClient, RunnerError
 from app.scans import harvest
 
@@ -68,7 +68,7 @@ def execute_run(run_id: uuid.UUID, runner: RunnerClient, cancelled: Callable[[],
                 "plugin_version": version.version,
                 "targets": run.targets,
                 "target": run.targets[0],  # single-target adapters read this one
-                "config": {},
+                "config": (db.get(Scan, run.scan_id).plugin_config if run.scan_id else {}).get(version.plugin_id, {}),
                 "rate_limit": m["limits"]["default_rate_limit"],
             },
         }

@@ -16,10 +16,17 @@ def _validator(name: str) -> Draft202012Validator:
     return Draft202012Validator(schema, format_checker=FormatChecker())
 
 
+def _messages(validator: Draft202012Validator, doc: object) -> list[str]:
+    return [f"{'/'.join(map(str, e.absolute_path)) or '(root)'}: {e.message}" for e in validator.iter_errors(doc)]
+
+
 def _errors(name: str, doc: object) -> list[str]:
-    return [
-        f"{'/'.join(map(str, e.absolute_path)) or '(root)'}: {e.message}" for e in _validator(name).iter_errors(doc)
-    ]
+    return _messages(_validator(name), doc)
+
+
+def validate_config(schema: dict, doc: object) -> list[str]:
+    """A plugin's settings against its manifest's config_schema."""
+    return _messages(Draft202012Validator(schema, format_checker=FormatChecker()), doc)
 
 
 def validate_manifest(doc: object) -> list[str]:

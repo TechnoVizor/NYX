@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from app import scans
-from app.models import SCAN_FINAL, PluginRun, PluginVersion, Scan, ScanTarget, ScopeTarget, User
+from app.contract import validate_config
+from app.models import SCAN_FINAL, PluginRun, PluginVersion, Scan, ScanProfile, ScanTarget, ScopeTarget, User
 from app.registry import installed_plugins
 from app.routes.common import Target
 from app.routes.runs import RunOut, run_out
@@ -24,13 +25,17 @@ Engine = Annotated[object, Depends(get_temporal)]
 class ScanIn(BaseModel):
     target: Target
     plugin_ids: list[str] | None = Field(default=None, max_length=200)
-    max_depth: int = Field(default=2, ge=1, le=3)
+    max_depth: int | None = Field(default=None, ge=1, le=3)
+    profile_id: uuid.UUID | None = None
+    plugin_config: dict[str, dict] | None = None
 
 
 class ScanOut(BaseModel):
     id: uuid.UUID
     root_target: dict
     plugin_ids: list[str]
+    plugin_config: dict
+    profile_id: uuid.UUID | None
     max_depth: int
     max_targets: int
     status: str
@@ -78,6 +83,25 @@ def launch(db, scan: Scan, engine) -> None:
         raise HTTPException(503, UNAVAILABLE) from None
 
 
+def check_plugins(rows: dict, ids: list[str], from_profile: bool = False) -> None:
+    for pid in ids:
+        if pid in rows and rows[pid][2].enabled and rows[pid][1].digest:
+            continue
+        if from_profile:
+            raise HTTPException(422, f"{pid} in this profile is not available.")
+        if pid not in rows:
+            raise HTTPException(422, f"Unknown plugin {pid}.")
+        raise HTTPException(422, f"{rows[pid][0].name} can't run: it is disabled or its image is missing.")
+
+
+def check_config(rows: dict, ids: list[str], config: dict) -> None:
+    for pid, value in config.items():
+        if pid not in ids:
+            raise HTTPException(422, f"Config for {pid}, which is not selected.")
+        if errors := validate_config(rows[pid][1].manifest.get("config_schema", {}), value):
+            raise HTTPException(422, f"{pid} config: {errors[0]}")
+
+
 @router.post("", status_code=202, response_model=ScanOut)
 def create(body: ScanIn, db: DB, user: Operator, engine: Engine):
     try:
@@ -86,20 +110,31 @@ def create(body: ScanIn, db: DB, user: Operator, engine: Engine):
         raise HTTPException(422, str(e)) from None
     if find_entry(root["type"], root["value"], db.scalars(select(ScopeTarget)).all()) is None:
         raise HTTPException(403, f"{root['value']} is not in scope.")
+    profile = None
+    if body.profile_id is not None:
+        profile = db.get(ScanProfile, body.profile_id)
+        if profile is None:
+            raise HTTPException(404, "No such profile.")
     rows = {p.id: (p, v, i) for p, v, i in db.execute(installed_plugins()).all()}
-    if body.plugin_ids is None:
-        ids = sorted(pid for pid, (p, v, i) in rows.items() if i.enabled and v.digest and p.risk_level != "intrusive")
-    else:
+    if body.plugin_ids is not None:
         ids = list(dict.fromkeys(body.plugin_ids))
-        for pid in ids:
-            if pid not in rows:
-                raise HTTPException(422, f"Unknown plugin {pid}.")
-            p, v, i = rows[pid]
-            if not i.enabled or not v.digest:
-                raise HTTPException(422, f"{p.name} can't run: it is disabled or its image is missing.")
+        check_plugins(rows, ids)
+    elif profile is not None:
+        ids = list(profile.plugin_ids)
+        check_plugins(rows, ids, from_profile=True)
+    else:
+        ids = sorted(pid for pid, (p, v, i) in rows.items() if i.enabled and v.digest and p.risk_level != "intrusive")
     if not ids:
         raise HTTPException(422, "Select at least one plugin.")
-    scan = scans.create_scan(db, root, ids, body.max_depth, user.id)
+    if body.plugin_config is not None:
+        config = body.plugin_config
+    elif profile is not None:  # an overridden plugin list drops the profile's settings for plugins it left out
+        config = {k: v for k, v in profile.plugin_config.items() if k in ids}
+    else:
+        config = {}
+    check_config(rows, ids, config)
+    depth = body.max_depth or (profile.max_depth if profile else 2)
+    scan = scans.create_scan(db, root, ids, depth, user.id, config, profile.id if profile else None)
     launch(db, scan, engine)
     return scan
 
