@@ -11,6 +11,9 @@ with create_engine(_url.set(database="postgres"), isolation_level="AUTOCOMMIT").
     if not _c.scalar(text("select 1 from pg_database where datname = :n"), {"n": _url.database}):
         _c.execute(text(f'create database "{_url.database}"'))
 
+import importlib.util  # noqa: E402
+import json  # noqa: E402
+
 import pytest  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -19,9 +22,6 @@ from alembic import command  # noqa: E402
 from app.config import settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
-
-import importlib.util  # noqa: E402
-import json  # noqa: E402
 
 # TRUNCATE users ... CASCADE empties scan_profiles too (created_by), so clean() re-seeds the built-ins from 0006.
 _spec = importlib.util.spec_from_file_location("m0006", "alembic/versions/0006_findings.py")
