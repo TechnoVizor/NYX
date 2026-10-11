@@ -28,7 +28,7 @@ permissions:
   host_mounts: false
   docker_socket: false
 limits:
-  default_rate_limit: 10
+  default_rate_limit: 150
 config_schema:
   type: object
   additionalProperties: false
