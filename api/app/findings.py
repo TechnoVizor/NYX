@@ -29,17 +29,28 @@ def _events(db: Session, run: PluginRun, type: str):
     ).all()
 
 
+CHUNK = 1000  # rows per INSERT; well under Postgres' 65535 bind parameters
+
+
+def _chunks(rows: list) -> list[list]:
+    return [rows[i : i + CHUNK] for i in range(0, len(rows), CHUNK)]
+
+
 def index(db: Session, run: PluginRun) -> None:
     now = func.now()  # one value for the whole transaction
-    # ponytail: one statement per event; batch the upserts if a run ever reports tens of thousands.
+    # One row per key and batch: a statement may not touch the same row twice, and the last report wins.
+    assets: dict[tuple[str, str], dict] = {}
     for _, payload in _events(db, run, "asset"):
         data = payload.get("data") or {}
         kind, value = str(data.get("kind", ""))[:32], str(data.get("value", ""))
-        if not kind or not value or len(value) > 2000:
-            continue
-        attrs = {k: v for k, v in data.items() if k not in ("kind", "value")}
+        if kind and value and len(value) <= 2000:
+            assets[(kind, value)] = {k: v for k, v in data.items() if k not in ("kind", "value")}
+    for rows in _chunks(list(assets.items())):
         stmt = insert(Asset).values(
-            kind=kind, value=value, data=attrs, first_seen=now, last_seen=now, last_scan_id=run.scan_id
+            [
+                {"kind": k, "value": v, "data": d, "first_seen": now, "last_seen": now, "last_scan_id": run.scan_id}
+                for (k, v), d in rows
+            ]
         )
         db.execute(
             stmt.on_conflict_do_update(
@@ -47,7 +58,9 @@ def index(db: Session, run: PluginRun) -> None:
                 set_={"data": stmt.excluded.data, "last_seen": now, "last_scan_id": run.scan_id},
             )
         )
+
     plugin_id = db.scalar(select(PluginVersion.plugin_id).where(PluginVersion.id == run.plugin_version_id))
+    found: dict[str, tuple[int, dict, str, str, str]] = {}  # fingerprint -> (seq, data, template, matched_at, target)
     for seq, payload in _events(db, run, "finding"):
         data = payload.get("data") or {}
         if data.get("severity") not in SEVERITIES:
@@ -55,27 +68,38 @@ def index(db: Session, run: PluginRun) -> None:
         target_value = str((payload.get("target") or {}).get("value", ""))
         template_id = str(data.get("template_id") or data["title"])
         matched_at = str(data.get("matched_at") or target_value)
-        asset_id = db.scalar(
-            select(Asset.id)
-            .where(Asset.kind.in_(LINKABLE), Asset.value.in_([matched_at, target_value]))
-            .order_by((Asset.value == matched_at).desc())
-            .limit(1)
-        )
+        found[fingerprint(plugin_id, template_id, matched_at)] = (seq, data, template_id, matched_at, target_value)
+    if not found:
+        return
+    wanted = {v for f in found.values() for v in (f[3], f[4]) if len(v) <= 2000}
+    known: dict[str, object] = {}
+    for values in _chunks(sorted(wanted)):
+        for value, asset_id in db.execute(
+            select(Asset.value, Asset.id).where(Asset.kind.in_(LINKABLE), Asset.value.in_(values))
+        ):
+            known.setdefault(value, asset_id)
+    reopen = Finding.status == "fixed"  # inside ON CONFLICT, Finding.* is the existing row
+    ids: dict[str, object] = {}
+    for rows in _chunks(list(found.items())):
         stmt = insert(Finding).values(
-            fingerprint=fingerprint(plugin_id, template_id, matched_at),
-            plugin_id=plugin_id,
-            template_id=template_id[:200],
-            title=str(data["title"])[:300],
-            severity=data["severity"],
-            matched_at=matched_at[:2000],
-            asset_id=asset_id,
-            data={**data, "matched_at": matched_at},
-            status="open",
-            first_seen=now,
-            last_seen=now,
+            [
+                {
+                    "fingerprint": fp,
+                    "plugin_id": plugin_id,
+                    "template_id": template_id[:200],
+                    "title": str(data["title"])[:300],
+                    "severity": data["severity"],
+                    "matched_at": matched_at[:2000],
+                    "asset_id": known.get(matched_at) or known.get(target_value),
+                    "data": {**data, "matched_at": matched_at},
+                    "status": "open",
+                    "first_seen": now,
+                    "last_seen": now,
+                }
+                for fp, (_, data, template_id, matched_at, target_value) in rows
+            ]
         )
-        reopen = Finding.status == "fixed"  # inside ON CONFLICT, Finding.* is the existing row
-        finding_id = db.scalar(
+        result = db.execute(
             stmt.on_conflict_do_update(
                 index_elements=["fingerprint"],
                 set_={
@@ -89,13 +113,19 @@ def index(db: Session, run: PluginRun) -> None:
                     "status_by": case((reopen, null()), else_=Finding.status_by),
                     "status_at": case((reopen, null()), else_=Finding.status_at),
                 },
-            ).returning(Finding.id)
+            ).returning(Finding.fingerprint, Finding.id)
         )
+        ids.update(result.all())
+    for rows in _chunks(list(found.items())):
         occ = insert(FindingOccurrence).values(
-            finding_id=finding_id, scan_id=run.scan_id, run_id=run.id, event_seq=seq, seen_at=now
+            [
+                {"finding_id": ids[fp], "scan_id": run.scan_id, "run_id": run.id, "event_seq": f[0], "seen_at": now}
+                for fp, f in rows
+            ]
         )
         db.execute(
             occ.on_conflict_do_update(
-                index_elements=["finding_id", "scan_id"], set_={"run_id": run.id, "event_seq": seq, "seen_at": now}
+                index_elements=["finding_id", "scan_id"],
+                set_={"run_id": occ.excluded.run_id, "event_seq": occ.excluded.event_seq, "seen_at": now},
             )
         )
