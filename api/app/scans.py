@@ -10,6 +10,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.findings import index
 from app.models import SCAN_FINAL, Plugin, PluginEvent, PluginRun, PluginVersion, Scan, ScanTarget, ScopeTarget
 from app.registry import installed_plugins
 from app.scope import find_entry, normalized_target, refusal
@@ -69,6 +70,7 @@ def harvest(db: Session, run: PluginRun) -> int:
     if new:
         # Two batches of one scan can find the same host at the same moment: the second insert just skips it.
         db.execute(insert(ScanTarget).values(list(new.values())).on_conflict_do_nothing())
+    index(db, run)
     db.commit()
     return len(new)
 
