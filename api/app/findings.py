@@ -39,13 +39,14 @@ def _chunks(rows: list) -> list[list]:
 def index(db: Session, run: PluginRun) -> None:
     now = func.now()  # one value for the whole transaction
     # One row per key and batch: a statement may not touch the same row twice, and the last report wins.
+    # Rows go in key order so concurrent batches of a scan lock shared rows in the same order (no deadlocks).
     assets: dict[tuple[str, str], dict] = {}
     for _, payload in _events(db, run, "asset"):
         data = payload.get("data") or {}
         kind, value = str(data.get("kind", ""))[:32], str(data.get("value", ""))
         if kind and value and len(value) <= 2000:
             assets[(kind, value)] = {k: v for k, v in data.items() if k not in ("kind", "value")}
-    for rows in _chunks(list(assets.items())):
+    for rows in _chunks(sorted(assets.items())):
         stmt = insert(Asset).values(
             [
                 {"kind": k, "value": v, "data": d, "first_seen": now, "last_seen": now, "last_scan_id": run.scan_id}
@@ -80,7 +81,7 @@ def index(db: Session, run: PluginRun) -> None:
             known.setdefault(value, asset_id)
     reopen = Finding.status == "fixed"  # inside ON CONFLICT, Finding.* is the existing row
     ids: dict[str, object] = {}
-    for rows in _chunks(list(found.items())):
+    for rows in _chunks(sorted(found.items())):
         stmt = insert(Finding).values(
             [
                 {
@@ -116,7 +117,7 @@ def index(db: Session, run: PluginRun) -> None:
             ).returning(Finding.fingerprint, Finding.id)
         )
         ids.update(result.all())
-    for rows in _chunks(list(found.items())):
+    for rows in _chunks(sorted(found.items())):
         occ = insert(FindingOccurrence).values(
             [
                 {"finding_id": ids[fp], "scan_id": run.scan_id, "run_id": run.id, "event_seq": f[0], "seen_at": now}
