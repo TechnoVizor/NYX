@@ -1,9 +1,10 @@
-import { findings } from "@/lib/mocks/data";
-import type { Credentials, Finding, PluginDetail, PluginEvent, PluginRun, PluginSummary, Scan, ScanDetail, ScanInput, ScanTarget, ScopeEntry, ScopeInput, Target, User } from "@/lib/types";
+import type {
+  Asset, AssetDetail, Credentials, Dashboard, FindingDetail, FindingFilters, FindingRow, FindingStatus, Page, PluginDetail,
+  PluginEvent, PluginRun, PluginSummary, Profile, ProfileInput, Scan, ScanDetail, ScanInput, ScanTarget, ScopeEntry,
+  ScopeInput, Target, User,
+} from "@/lib/types";
 
-// The only module that knows where data comes from. Auth talks to the real API through the /api rewrite;
-// findings are still mocks until the risk engine lands.
-const delay = <T,>(value: T, ms = 120) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
+// The only module that knows where data comes from: the real API through the /api rewrite.
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -35,6 +36,13 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 const send = <T,>(method: string, path: string, body?: unknown) =>
   call<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
 const post = <T,>(path: string, body?: unknown) => send<T>("POST", path, body);
+const qs = (params: Record<string, string | number | string[] | undefined>) => {
+  const s = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "" && !(Array.isArray(v) && !v.length)) s.set(k, Array.isArray(v) ? v.join(",") : String(v));
+  }
+  return s.size ? `?${s}` : "";
+};
 
 export const api = {
   me: () => call<User>("/me"),
@@ -49,8 +57,16 @@ export const api = {
   pauseScan: (id: string) => post<Scan>(`/scans/${id}/pause`),
   resumeScan: (id: string) => post<Scan>(`/scans/${id}/resume`),
   cancelScan: (id: string) => post<Scan>(`/scans/${id}/cancel`),
-  listFindings: (): Promise<Finding[]> => delay(findings),
-  getFinding: (id: string): Promise<Finding | undefined> => delay(findings.find((f) => f.id === id)),
+  listFindings: (f: FindingFilters, after = 0) => call<Page<FindingRow>>(`/findings${qs({ ...f, after })}`),
+  getFinding: (id: string) => call<FindingDetail>(`/findings/${id}`),
+  reviewFinding: (id: string, body: { status: FindingStatus; note?: string }) => send<FindingDetail>("PATCH", `/findings/${id}`, body),
+  listAssets: (f: { kind?: string; q?: string }, after = 0) => call<Page<Asset>>(`/assets${qs({ ...f, after })}`),
+  getAsset: (id: string) => call<AssetDetail>(`/assets/${id}`),
+  dashboard: () => call<Dashboard>("/dashboard"),
+  listProfiles: () => call<Profile[]>("/profiles"),
+  createProfile: (body: ProfileInput) => post<Profile>("/profiles", body),
+  updateProfile: (id: string, body: Partial<ProfileInput>) => send<Profile>("PATCH", `/profiles/${id}`, body),
+  deleteProfile: (id: string) => send<void>("DELETE", `/profiles/${id}`),
   listPlugins: () => call<PluginSummary[]>("/plugins"),
   getPlugin: (id: string) => call<PluginDetail>(`/plugins/${encodeURIComponent(id)}`),
   setPluginEnabled: (id: string, enabled: boolean) => send<PluginSummary>("PATCH", `/plugins/${encodeURIComponent(id)}`, { enabled }),

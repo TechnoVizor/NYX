@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { FindingsTable } from "@/components/findings/findings-table";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const metadata: Metadata = { title: "Findings" };
 
 export default function Page() {
-  return <PlaceholderPage title="Findings" description="Evidence-linked findings across all scans." route="/app/findings" />;
+  return (
+    <>
+      <PageHeader title="Findings" description="Everything my scanners reported, once per issue, across every scan. Review it here." />
+      <FindingsTable />
+    </>
+  );
 }

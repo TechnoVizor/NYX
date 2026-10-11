@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import { scanFinal, type RunStatus, type ScanStatus } from "@/lib/types";
+import { scanFinal, type FindingFilters, type Page, type RunStatus, type ScanStatus } from "@/lib/types";
 
 export const scanLive = (s?: ScanStatus) => !!s && !scanFinal.includes(s);
 
@@ -14,8 +14,18 @@ export const useScanRuns = (id: string, polling: boolean) =>
 // ponytail: first 500 targets only; page with ?after= when scans routinely find more.
 export const useScanTargets = (id: string, polling: boolean) =>
   useQuery({ queryKey: ["scans", id, "targets"], queryFn: () => api.scanTargets(id), refetchInterval: polling ? 2000 : false });
-export const useFindings = () => useQuery({ queryKey: ["findings"], queryFn: api.listFindings });
-export const useFinding = (id: string) => useQuery({ queryKey: ["findings", id], queryFn: () => api.getFinding(id) });
+const nextAfter = <T,>(last: Page<T>, pages: Page<T>[]) => {
+  const loaded = pages.reduce((n, p) => n + p.items.length, 0);
+  return loaded < last.total ? loaded : undefined;
+};
+export const useFindings = (f: FindingFilters) =>
+  useInfiniteQuery({ queryKey: ["findings", f], queryFn: ({ pageParam }) => api.listFindings(f, pageParam), initialPageParam: 0, getNextPageParam: nextAfter });
+export const useFinding = (id: string) => useQuery({ queryKey: ["findings", "one", id], queryFn: () => api.getFinding(id) });
+export const useAssets = (f: { kind?: string; q?: string }) =>
+  useInfiniteQuery({ queryKey: ["assets", f], queryFn: ({ pageParam }) => api.listAssets(f, pageParam), initialPageParam: 0, getNextPageParam: nextAfter });
+export const useAsset = (id: string | null) => useQuery({ queryKey: ["assets", "one", id], queryFn: () => api.getAsset(id!), enabled: !!id });
+export const useDashboard = () => useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard, refetchInterval: 15000 });
+export const useProfiles = () => useQuery({ queryKey: ["profiles"], queryFn: api.listProfiles });
 export const useMe = () => useQuery({ queryKey: ["me"], queryFn: api.me, retry: false, staleTime: Infinity });
 
 const live = (s?: RunStatus) => s === "PENDING" || s === "RUNNING";
