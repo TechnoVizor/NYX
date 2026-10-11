@@ -88,6 +88,8 @@ docker compose up --build
 
 Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API stays private to the containers; the web app talks to it for you.
 
+Keep your local sign-in in `.env` at the repo root (`NYX_ADMIN_EMAIL`, `NYX_ADMIN_PASSWORD`). The file is gitignored: credentials never go into this repository.
+
 Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. Then start a scan at **Scans → New scan**. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test` with a fake exposed `.git/config`, `.env` and a directory listing: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with the Balanced profile.
 
 Everything listens on `127.0.0.1` only, on purpose.
