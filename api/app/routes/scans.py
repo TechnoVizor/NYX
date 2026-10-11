@@ -8,7 +8,18 @@ from sqlalchemy import func, select
 
 from app import scans
 from app.contract import validate_config
-from app.models import SCAN_FINAL, PluginRun, PluginVersion, Scan, ScanProfile, ScanTarget, ScopeTarget, User
+from app.models import (
+    SCAN_FINAL,
+    Finding,
+    FindingOccurrence,
+    PluginRun,
+    PluginVersion,
+    Scan,
+    ScanProfile,
+    ScanTarget,
+    ScopeTarget,
+    User,
+)
 from app.registry import installed_plugins
 from app.routes.common import Target
 from app.routes.runs import RunOut, run_out
@@ -53,6 +64,7 @@ class ScanDetailOut(ScanOut):
     runs: dict[str, int]
     events: int
     container_seconds: float
+    findings_by_severity: dict[str, int]
 
 
 class ScanTargetOut(BaseModel):
@@ -170,6 +182,14 @@ def get_scan(scan_id: uuid.UUID, db: DB, _: Anyone):
         "runs": runs,
         "events": int(events),
         "container_seconds": float(seconds),
+        "findings_by_severity": dict(
+            db.execute(
+                select(Finding.severity, func.count())
+                .join(FindingOccurrence, FindingOccurrence.finding_id == Finding.id)
+                .where(FindingOccurrence.scan_id == scan_id)
+                .group_by(Finding.severity)
+            ).all()
+        ),
     }
 
 

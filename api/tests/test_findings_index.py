@@ -124,3 +124,10 @@ def test_long_values_are_skipped_or_truncated(world):
 def test_invalid_findings_are_ignored(world):
     batch(world, [finding(severity="urgent")])
     assert all_(Finding) == []
+
+
+def test_detail_returns_the_raw_event(client, world):
+    batch(world, [finding(template_id="x", curl="curl http://a.example.com")])
+    [f] = all_(Finding)
+    raw = client.get(f"/api/v1/findings/{f.id}").json()["raw"]
+    assert raw["data"]["curl"] == "curl http://a.example.com"
