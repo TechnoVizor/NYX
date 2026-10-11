@@ -76,6 +76,7 @@ def upgrade() -> None:
         sa.Column("event_seq", sa.Integer(), nullable=True),
         sa.Column("seen_at", sa.DateTime(timezone=True), nullable=False),
     )
+    op.create_index("ix_scan_targets_value", "scan_targets", ["value"])  # an asset's scans
     op.create_index("ix_finding_occurrences_scan_id", "finding_occurrences", ["scan_id"])
     profiles = op.create_table(
         "scan_profiles",
@@ -112,3 +113,4 @@ def downgrade() -> None:
     op.drop_table("finding_occurrences")
     op.drop_table("findings")
     op.drop_table("assets")
+    op.drop_index("ix_scan_targets_value", table_name="scan_targets")

@@ -154,6 +154,7 @@ class ScanTarget(Base):
     """Everything a scan considered: followed (in_scope) or not (refusal says why)."""
 
     __tablename__ = "scan_targets"
+    __table_args__ = (Index("ix_scan_targets_value", "value"),)
 
     scan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scans.id", ondelete="CASCADE"), primary_key=True)
     type: Mapped[str] = mapped_column(String(8), primary_key=True)
