@@ -2,7 +2,7 @@
   <img src=".github/assets/banner.png" alt="NYX" width="100%">
 </p>
 
-<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.<br><sub>Early days: the platform core and my first plugins run today; full scans are being built. See the <a href="#roadmap">roadmap</a>.</sub></p>
+<p align="center"><b>I map your attack surface.</b><br>Open-source scanners, raw evidence behind every finding, and only the tools the last result justifies.<br><sub>Early days: the platform core, durable scans and my first scanners, Nuclei included, run today; the planner is next. See the <a href="#roadmap">roadmap</a>.</sub></p>
 
 <p align="center">
   <a href="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml"><img src="https://github.com/TechnoVizor/NYX/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -46,7 +46,7 @@ Every scan is a short story. Here's one, step by step.
 | <img src=".github/assets/steps/correlate.jpg" width="200"> | **Correlate.** Hosts, services, certificates and findings go into one graph, so you see how things connect. |
 | <img src=".github/assets/steps/report.jpg" width="200"> | **Report.** You get a report you can rerun and check: same inputs, same evidence, same conclusions. |
 
-> This is where I'm headed. Today I chain Subfinder, dnsx and httpx: every host I find goes through the scope check and on to the next tool, in batches, each tool in its own locked-down container, and a scan survives restarts. The planner that picks tools by what it found is next; see the [roadmap](#roadmap).
+> This is where I'm headed. Today I chain Subfinder, dnsx, httpx and Nuclei: every host I find goes through the scope check and on to the next tool, in batches, each tool in its own locked-down container, and a scan survives restarts. Findings are kept once per issue across scans, with your review on them. The planner that picks tools by what it found is next; see the [roadmap](#roadmap).
 
 ## What I refuse to do
 
@@ -82,13 +82,13 @@ You need Docker.
 ```bash
 git clone https://github.com/TechnoVizor/NYX.git
 cd NYX
-docker compose --profile plugins build   # my scanners: Subfinder, dnsx, httpx
+docker compose --profile plugins build   # my scanners: Subfinder, dnsx, httpx, Nuclei
 docker compose up --build
 ```
 
 Open <http://localhost:3001>. The **first account you create becomes the admin**; after that sign-up closes (set `NYX_ALLOW_SIGNUP=true` to keep it open). The API stays private to the containers; the web app talks to it for you.
 
-Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. Then start a scan at **Scans → New scan**. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test`: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with dnsx and httpx.
+Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. Then start a scan at **Scans → New scan**. For a safe playground, `docker compose --profile lab up -d testbed` starts a local nginx at `testbed.nyx-lab.test` with a fake exposed `.git/config`, `.env` and a directory listing: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with the Balanced profile.
 
 Everything listens on `127.0.0.1` only, on purpose.
 
@@ -133,10 +133,11 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 | Path | What lives there |
 |---|---|
 | `api/` | FastAPI service and the scan worker: accounts, scope, plugin registry, scans on Temporal. Migrations in `api/alembic`. |
-| `web/` | The workspace UI: sign-in, plugins with live runs, scope settings. Scans, findings and the rest are placeholders on mock data for now. |
+| `web/` | The workspace UI: sign-in, scans, findings with review, assets, dashboard, scan profiles, plugins, scope. Graph, evidence, reports and experiments arrive with their phases. |
 | `docs/` | Design specs and implementation plans. |
 | `plugins/` | The plugin contract (JSON Schemas), the one-file SDK, a template, and Subfinder, dnsx, httpx. |
 | `runner/` | The only service with Docker access: starts each plugin in a locked-down container. |
+| `lab/` | The local testbed's deliberate, fake misconfigurations. |
 | `scripts/` | Tools that build the images in this README. |
 
 ## Roadmap
@@ -144,7 +145,7 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 - [x] **1. Core platform** — monorepo, FastAPI, PostgreSQL, accounts and roles, Docker Compose, CI
 - [x] **2. Plugin specification** — manifest schema, canonical events, plugin registry, first three plugins
 - [x] **3. Workflow engine** — Temporal scan workflow, plugin activities, retries, cancel and pause, network egress limited to scope
-- [ ] **4. Default plugin set** — Subfinder, dnsx, httpx, Nuclei and friends
+- [ ] **4. Default plugin set** — 4a done: Nuclei, findings with review across scans, assets, scan profiles. Next: Naabu, tlsx, Katana, gau (4b); CVE/EPSS/KEV enrichment (4c)
 - [ ] **5. Evidence and graph** — immutable hash-addressed evidence in MinIO, entity graph in Memgraph
 - [ ] **6. Adaptive planner** — decide the next tool from what the last one found
 - [ ] **7. AI gateway** — bounded routing, extraction and evidence-backed explanations

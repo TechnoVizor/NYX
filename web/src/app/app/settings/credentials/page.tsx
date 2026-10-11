@@ -4,5 +4,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 export const metadata: Metadata = { title: "Settings: Credentials" };
 
 export default function Page() {
-  return <PlaceholderPage title="Settings: Credentials" description="Workspace configuration." route="/app/settings/credentials" />;
+  return <PlaceholderPage phase="Next small step after Phase 4a." title="Settings: Credentials" description="Workspace configuration." route="/app/settings/credentials" />;
 }
