@@ -124,6 +124,11 @@ services:
     image: nyx-plugin/httpx:1.12.0
     build: {context: ./plugins, dockerfile: projectdiscovery.httpx/Dockerfile}
 
+  plugin-nuclei:
+    profiles: ["plugins"]
+    image: nyx-plugin/nuclei:3.11.1
+    build: {context: ./plugins, dockerfile: projectdiscovery.nuclei/Dockerfile}
+
   testbed:
     # Local lab target for safe_active plugins: add scope "nyx-lab.test" (active allowed), run httpx on testbed.nyx-lab.test.
     profiles: ["lab"]

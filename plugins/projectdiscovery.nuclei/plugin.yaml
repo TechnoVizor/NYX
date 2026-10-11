@@ -1,0 +1,46 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.nuclei
+  name: Nuclei
+  publisher: ProjectDiscovery
+  version: 3.11.1
+  license: MIT
+  description: "Checks live web services against nuclei-templates v10.5.0. Safe checks only: no DoS, fuzzing, brute force, headless or code templates, no out-of-band callbacks."
+runtime:
+  type: oci
+  image: nyx-plugin/nuclei:3.11.1
+classification:
+  categories: [vulnerability, web]
+  risk_level: safe_active
+  trust_level: verified
+io:
+  accepts: [url]
+  produces: [finding, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 512
+  timeout_seconds: 1800
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 10
+config_schema:
+  type: object
+  additionalProperties: false
+  properties:
+    severity:
+      type: array
+      items: {enum: [info, low, medium, high, critical]}
+      minItems: 1
+      uniqueItems: true
+      default: [low, medium, high, critical]
+    exclude_tags:
+      type: array
+      items: {type: string, pattern: "^[a-z0-9-]{1,40}$"}
+      maxItems: 50
+      default: []
