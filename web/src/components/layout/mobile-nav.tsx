@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, Menu, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSignOut } from "@/components/layout/topbar";
+import { useMe } from "@/lib/api/hooks";
 import { navGroups, primaryNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const { signOut, error } = useSignOut();
   const [more, setMore] = useState(false);
+  const canScan = useMe().data?.role !== "viewer";
   const setup = navGroups.filter((g) => g.items !== primaryNav).flatMap((g) => g.items);
 
   return (
@@ -64,11 +66,13 @@ export function MobileNav() {
             <DialogTitle>More</DialogTitle>
           </DialogHeader>
           <ul className="flex flex-col gap-1 text-sm">
-            <li>
-              <Link href="/app/scans/new" onClick={() => setMore(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-2 font-medium hover:bg-surface-2">
-                <Plus className="size-4" /> New scan
-              </Link>
-            </li>
+            {canScan && (
+              <li>
+                <Link href="/app/scans/new" onClick={() => setMore(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-2 font-medium hover:bg-surface-2">
+                  <Plus className="size-4" /> New scan
+                </Link>
+              </li>
+            )}
             {setup.map(({ label, href, icon: Icon, tour }) => (
               <li key={href}>
                 <Link

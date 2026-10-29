@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMe } from "@/lib/api/hooks";
 import { navGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
@@ -12,6 +13,7 @@ import { useUiStore } from "@/stores/ui-store";
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarCollapsed: collapsed, toggleSidebar } = useUiStore();
+  const canScan = useMe().data?.role !== "viewer";
 
   return (
     <aside
@@ -24,7 +26,7 @@ export function Sidebar() {
         <Logo href="/app/dashboard" compact={collapsed} />
       </div>
 
-      <div className="px-2.5 pb-2">
+      {canScan && <div className="px-2.5 pb-2">
         <Link
           href="/app/scans/new"
           className="flex h-9 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
@@ -33,7 +35,7 @@ export function Sidebar() {
           {!collapsed && "New Scan"}
           {collapsed && <span className="sr-only">New Scan</span>}
         </Link>
-      </div>
+      </div>}
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-2.5 py-3" aria-label="Primary">
         {navGroups.map((group) => (

@@ -71,7 +71,7 @@ export function QuickScan() {
   };
 
   return (
-    <section className="rounded-lg border border-border p-4">
+    <section id="quick-scan" data-tour="quick-scan" className="rounded-lg border border-border p-4">
       <h2 className="text-sm font-semibold">Quick scan</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         Give me a domain, IP or URL you are allowed to test. I run the {balanced ? "Balanced profile" : "plugins that can run"} on it.
@@ -82,9 +82,10 @@ export function QuickScan() {
           onChange={(e) => { setValue(e.target.value); setOutside(null); setErr(""); }}
           placeholder="example.com"
           aria-label="Target"
+          id="quick-scan-target"
           className="max-w-sm"
         />
-        <Button type="submit" disabled={busy || !value.trim() || !!outside}>{busy && !outside ? "Starting…" : "Start scan"}</Button>
+        <Button type="submit" data-tour="quick-scan-start" disabled={busy || !value.trim() || !!outside}>{busy && !outside ? "Starting…" : "Start scan"}</Button>
       </form>
       {outside && me.role === "admin" && (
         <form onSubmit={addAndStart} className="mt-4 flex max-w-xl flex-col gap-2 border-t border-border pt-4">
