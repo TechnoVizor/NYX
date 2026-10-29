@@ -35,11 +35,16 @@ for (const theme of THEMES) {
   });
 }
 
-test("nyx keeps today's palette", () => {
+test("nyx speaks Dovetail", () => {
   const k = deriveTokens(themeById("nyx")!);
-  assert.equal(k.background, "#050506");
-  assert.equal(k.brand, "#8ea2ff");
-  assert.equal(k["sev-critical"], "#ff5d62");
+  assert.deepEqual(
+    [k.background, k["surface-2"], k.foreground, k["muted-foreground"], k.brand, k.primary, k["primary-foreground"]],
+    ["#0a0a0a", "#141414", "#ffffff", "#a7a7a7", "#6798ff", "#ffffff", "#0a0a0a"],
+  );
+});
+
+test("cards sit on the panel tone in every theme", () => {
+  for (const t of THEMES) assert.equal(deriveTokens(t).card, t.input.panel, t.id);
 });
 
 test("hueOf is stable and never red (red means danger)", () => {
