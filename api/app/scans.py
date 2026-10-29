@@ -16,7 +16,9 @@ from app.registry import installed_plugins
 from app.scope import find_entry, normalized_target, refusal
 
 # Asset kinds that are themselves something to scan, and the target type they become. Data types, not tools.
-ASSET_TARGET = {"subdomain": "domain", "domain": "domain", "ip": "ip", "http_service": "url"}
+# An open port becomes a service target (host:port): only plugins that probe services take it, so web plugins see a
+# port only after something confirmed HTTP on it.
+ASSET_TARGET = {"subdomain": "domain", "domain": "domain", "ip": "ip", "http_service": "url", "port": "service"}
 MAX_VALUE = 2000  # scan_targets.value
 
 

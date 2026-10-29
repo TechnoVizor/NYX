@@ -151,3 +151,25 @@ def test_run_target_is_sent_normalized():
     assert normalized_target("domain", "A.Example.COM.") == {"type": "domain", "value": "a.example.com"}
     with pytest.raises(ValueError):
         normalized_target("url", "http://a.example.com/\nhttp://evil.net")
+
+
+def test_urls_lose_only_a_default_port():
+    from app.scope import canonical_url
+
+    assert canonical_url("https://a.example.com:443/.env") == "https://a.example.com/.env"
+    assert canonical_url("http://a.example.com:80") == "http://a.example.com"
+    assert canonical_url("HTTPS://A.Example.COM:8443/login") == "HTTPS://A.Example.COM:8443/login"
+    assert canonical_url("http://a.example.com:443/x?y=1") == "http://a.example.com:443/x?y=1"  # not http's default
+    assert canonical_url("https://[2001:db8::1]:443/") == "https://[2001:db8::1]/"
+
+
+def test_service_targets_are_host_and_port():
+    from app.scope import normalized_target
+
+    assert normalized_target("service", "A.Example.COM:8443") == {"type": "service", "value": "a.example.com:8443"}
+    assert normalized_target("service", "[2001:db8::1]:22") == {"type": "service", "value": "[2001:db8::1]:22"}
+    assert find_entry("service", "a.example.com:8443", ENTRIES).value == "example.com"
+    assert find_entry("service", "evil.net:443", ENTRIES) is None
+    for bad in ("a.example.com", "a.example.com:http", "a.example.com:70000", "evil.net@a.example.com:22"):
+        with pytest.raises(ValueError):
+            normalized_target("service", bad)

@@ -134,7 +134,8 @@
               "domain",
               "ip",
               "cidr",
-              "url"
+              "url",
+              "service"
             ]
           }
         },

@@ -10,11 +10,12 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import Asset, Finding, FindingOccurrence, PluginEvent, PluginRun, PluginVersion
+from app.scope import canonical_url
 
 SEVERITIES = ("critical", "high", "medium", "low", "info")
 STATUSES = ("open", "confirmed", "false_positive", "accepted_risk", "fixed")
 OPEN = ("open", "confirmed")
-LINKABLE = ("http_service", "subdomain", "domain", "ip")
+LINKABLE = ("http_service", "port", "subdomain", "domain", "ip")
 
 
 # Values a plugin pulled out of a response: Nuclei's extracted-results can be an .env line or a token. The API only ever
@@ -49,6 +50,10 @@ def _events(db: Session, run: PluginRun, type: str):
     ).all()
 
 
+def _canonical(value: str) -> str:
+    return canonical_url(value) if "://" in value else value
+
+
 CHUNK = 1000  # rows per INSERT; well under Postgres' 65535 bind parameters
 
 
@@ -63,7 +68,7 @@ def index(db: Session, run: PluginRun) -> None:
     assets: dict[tuple[str, str], dict] = {}
     for _, payload in _events(db, run, "asset"):
         data = payload.get("data") or {}
-        kind, value = str(data.get("kind", ""))[:32], str(data.get("value", ""))
+        kind, value = str(data.get("kind", ""))[:32], _canonical(str(data.get("value", "")))
         if kind and value and len(value) <= 2000:
             assets[(kind, value)] = {k: v for k, v in data.items() if k not in ("kind", "value")}
     for rows in _chunks(sorted(assets.items())):
@@ -86,9 +91,9 @@ def index(db: Session, run: PluginRun) -> None:
         data = payload.get("data") or {}
         if data.get("severity") not in SEVERITIES:
             continue
-        target_value = str((payload.get("target") or {}).get("value", ""))
+        target_value = _canonical(str((payload.get("target") or {}).get("value", "")))
         template_id = str(data.get("template_id") or data["title"])
-        matched_at = str(data.get("matched_at") or target_value)
+        matched_at = _canonical(str(data.get("matched_at") or target_value))
         found[fingerprint(plugin_id, template_id, matched_at)] = (seq, data, template_id, matched_at, target_value)
     if not found:
         return

@@ -84,6 +84,9 @@ def test_firewall_has_only_net_admin():
         # Same rule as the API: a URL typed without a scheme still has a host.
         ([{"type": "url", "value": "example.com:8443/x"}], ["example.com"]),
         ([{"type": "url", "value": "example.com"}], ["example.com"]),
+        # A service (host:port, from an open port) opens its host, never the literal "host:port".
+        ([{"type": "service", "value": "a.example.com:8443"}], ["a.example.com"]),
+        ([{"type": "service", "value": "[2001:db8::1]:22"}], ["2001:db8::1"]),
     ],
 )
 def test_egress_allow_extracts_hosts(targets, allow):

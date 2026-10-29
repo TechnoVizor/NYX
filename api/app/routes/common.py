@@ -4,5 +4,5 @@ from pydantic import BaseModel, Field
 
 
 class Target(BaseModel):
-    type: Literal["domain", "ip", "cidr", "url"]
+    type: Literal["domain", "ip", "cidr", "url", "service"]
     value: str = Field(min_length=1, max_length=2000)
