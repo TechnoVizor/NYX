@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { Time } from "@/components/shared/time";
 import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -60,14 +61,11 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading findings…</p> : !rows.length ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-          {filtered ? <SearchX className="size-5 shrink-0" aria-hidden /> : <ShieldCheck className="size-5 shrink-0 text-sev-low" aria-hidden />}
+        <EmptyState icon={filtered ? SearchX : ShieldCheck} tone={filtered ? "muted" : "green"}>
           {filtered ? (
-            <span>No findings match these filters. <button type="button" onClick={clear} className="text-foreground underline">Clear filters</button></span>
-          ) : (
-            <span>{scanId ? "No open findings from this scan." : "No open findings."}</span>
-          )}
-        </div>
+            <>No findings match. <button type="button" onClick={clear} className="text-foreground underline">Clear filters</button></>
+          ) : scanId ? "No open findings from this scan." : "No open findings."}
+        </EmptyState>
       ) : (
         <>
         {/* Phones: one card per finding; the table needs more width than a phone has. */}

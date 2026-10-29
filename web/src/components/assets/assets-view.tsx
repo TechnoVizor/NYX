@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { Time } from "@/components/shared/time";
 import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -66,14 +67,13 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading assets…</p> : !rows.length ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-          {kind || query ? <SearchX className="size-5 shrink-0" aria-hidden /> : <Boxes className="size-5 shrink-0 text-brand" aria-hidden />}
+        <EmptyState icon={kind || query ? SearchX : Boxes} tone={kind || query ? "muted" : "brand"}>
           {kind || query ? (
-            <span>No assets match these filters. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></span>
+            <>No assets match. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></>
           ) : (
-            <span>No assets yet. A scan fills this list.</span>
+            "No assets yet. A scan fills this list."
           )}
-        </div>
+        </EmptyState>
       ) : (
         <>
         {/* Phones: one row per asset with what matters. */}

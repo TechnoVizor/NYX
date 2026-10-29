@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import Link from "next/link";
 import { Activity } from "lucide-react";
 import { StatusText } from "@/components/scans/scan-status";
@@ -19,10 +20,9 @@ export function ScansTable() {
   if (error) return <p role="alert" className="text-sm text-sev-critical">{error.message}</p>;
   if (!data?.length)
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-        <Activity className="size-5 shrink-0 text-brand" aria-hidden />
-        <span>No scans yet. <Link href="/app/scans/new" className="text-foreground underline">Start one</Link></span>
-      </div>
+      <EmptyState icon={Activity}>
+        No scans yet. <Link href="/app/scans/new" className="text-foreground underline">Start one</Link>
+      </EmptyState>
     );
   return (
     <>
