@@ -51,7 +51,7 @@ export function ActivityRail() {
   const urgent = open ? open.critical + open.high : 0;
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-12 shrink-0 flex-col items-center gap-1 border-r border-sidebar-border bg-sidebar py-3 md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-12 shrink-0 flex-col items-center gap-1 border-r border-sidebar-border bg-sidebar pb-9 pt-3 md:flex">
       <Logo href="/app/dashboard" compact className="mb-2 text-foreground" />
       {canScan && (
         <Tooltip>
