@@ -27,7 +27,7 @@ function Blueprint() {
 /** Home is a command center: what needs you, a place to start a scan, then the numbers. Before any scan, the steps lead. */
 export function HomeView() {
   const { facts, result, error, retry } = useProgress();
-  const { data: d } = useDashboard();
+  const { data: d, error: dashError, refetch } = useDashboard();
   if (error)
     return (
       <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-sev-critical/40 p-4 text-sm">
@@ -39,8 +39,7 @@ export function HomeView() {
   if (!facts || !result) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const firstRun = facts.scans.length === 0;
-  const urgent = d ? d.open_by_severity.critical + d.open_by_severity.high : 0;
-  const { lead, tail } = headline(urgent);
+  const head = headline(d ? d.open_by_severity.critical + d.open_by_severity.high : null);
 
   return (
     <div className="relative">
@@ -53,14 +52,25 @@ export function HomeView() {
             <NextSteps facts={facts} {...result} compact />
             <div className="flex flex-col gap-3">
               <p className="font-mono text-xs text-muted-foreground">{metaLine(facts.scopeCount, d?.recent_scans[0]?.created_at ?? null)}</p>
-              <h1 className="text-[32px] leading-tight font-semibold tracking-[-0.03em] text-balance md:text-[40px]">
-                {lead}
-                {facts.role !== "viewer" && <span className="text-muted-foreground"> {tail}</span>}
-              </h1>
+              {head ? (
+                <h1 className="text-[32px] leading-tight font-semibold tracking-[-0.03em] text-balance md:text-[40px]">
+                  {head.lead}
+                  {facts.role !== "viewer" && <span className="text-muted-foreground"> {head.tail}</span>}
+                </h1>
+              ) : (
+                <h1 className="h-10 w-2/3 animate-pulse rounded-lg bg-surface-3 md:h-12" aria-label="Home" />
+              )}
             </div>
           </>
         )}
         <QuickScan />
+        {!firstRun && dashError && (
+          <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-sev-critical/40 p-4 text-sm">
+            <TriangleAlert className="size-5 shrink-0 text-sev-critical" aria-hidden />
+            <span className="flex-1">The numbers did not load: {dashError.message}</span>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>Try again</Button>
+          </div>
+        )}
         {!firstRun && d && <Overview d={d} />}
       </div>
     </div>

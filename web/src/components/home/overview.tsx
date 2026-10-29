@@ -5,7 +5,7 @@ import { ArrowRight, Boxes, Flame, type LucideIcon, ShieldAlert, Sparkles } from
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { PluginTiles } from "@/components/shared/plugin-tile";
 import { Time } from "@/components/shared/time";
-import { barSeries, ring, statCells, type StatCell } from "@/lib/home";
+import { barSeries, barTotals, ring, statCells, type StatCell } from "@/lib/home";
 import { scanStatusMeta, toneText } from "@/lib/status-meta";
 import type { Dashboard, Severity } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -58,8 +58,9 @@ function StatStrip({ d }: { d: Dashboard }) {
   );
 }
 
-function SeverityBars({ days, open }: { days: Dashboard["findings_per_day"]; open: Dashboard["open_by_severity"] }) {
+function SeverityBars({ days }: { days: Dashboard["findings_per_day"] }) {
   const { bars, max } = barSeries(days);
+  const drawn = barTotals(days);
   const W = 600, H = 170, base = H - 22, top = 8, slot = W / bars.length, bw = Math.max(4, slot - 6);
   const total = days.reduce((n, p) => n + p.count, 0);
   return (
@@ -91,11 +92,11 @@ function SeverityBars({ days, open }: { days: Dashboard["findings_per_day"]; ope
         <span>{days.at(-1)?.date.slice(5)}</span>
       </div>
       <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted-foreground">
-        {(["critical", "high", "medium", "low", "info"] as const).filter((s) => open[s]).map((s) => (
+        {(["critical", "high", "medium", "low", "info"] as const).filter((s) => drawn[s]).map((s) => (
           <li key={s} className="flex items-center gap-1.5">
             <span className={cn("size-2 rounded-full", dot[s])} aria-hidden />
             <span className="capitalize">{s}</span>
-            <span className="font-mono text-foreground">{open[s]}</span>
+            <span className="font-mono text-foreground">{drawn[s]}</span>
           </li>
         ))}
       </ul>
@@ -196,7 +197,7 @@ export function Overview({ d }: { d: Dashboard }) {
     <div className="flex flex-col gap-4">
       <StatStrip d={d} />
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <SeverityBars days={d.findings_per_day} open={d.open_by_severity} />
+        <SeverityBars days={d.findings_per_day} />
         <SeverityRing open={d.open_by_severity} total={d.open_total} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">

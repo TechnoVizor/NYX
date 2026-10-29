@@ -3,7 +3,9 @@
 import { ago } from "./format.ts";
 import type { Dashboard, Severity } from "./types.ts";
 
-export function headline(urgent: number): { lead: string; tail: string } {
+/** null while the numbers are not in (loading or failed): never say "All clear." without data. */
+export function headline(urgent: number | null): { lead: string; tail: string } | null {
+  if (urgent === null) return null;
   const tail = "Scan something new?";
   if (!urgent) return { lead: "All clear.", tail };
   return { lead: urgent === 1 ? "1 issue needs you." : `${urgent} issues need you.`, tail };
@@ -44,4 +46,16 @@ export function ring(open: Record<Severity, number>): { severity: Severity; valu
 export function metaLine(scopeCount: number, lastScanIso: string | null, now = new Date()): string {
   const targets = scopeCount === 0 ? "no targets yet" : scopeCount === 1 ? "1 target" : `${scopeCount} targets`;
   return ["Workspace", targets, ...(lastScanIso ? [`last scan ${ago(lastScanIso, now)}`] : [])].join(" · ");
+}
+
+/** What the 30-day bars draw, per severity: the legend must add up to the bars, not to open findings. */
+export function barTotals(days: Dashboard["findings_per_day"]): Record<Severity, number> {
+  const t: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const d of days) for (const s of Object.keys(t) as Severity[]) t[s] += d.by_severity?.[s] ?? 0;
+  return t;
+}
+
+/** The profile a scan starts with: the picked one while it is still usable, else Balanced, else the first. */
+export function profileFor(usable: { id: string; name: string; builtin: boolean }[], picked: string | null): string | undefined {
+  return (usable.find((p) => p.id === picked) ?? usable.find((p) => p.builtin && p.name === "Balanced") ?? usable[0])?.id;
 }

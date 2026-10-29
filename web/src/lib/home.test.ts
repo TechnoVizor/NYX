@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { barSeries, headline, metaLine, ring, statCells } from "./home.ts";
+import { barSeries, barTotals, headline, metaLine, profileFor, ring, statCells } from "./home.ts";
 import type { Dashboard } from "./types.ts";
 
 const zero = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -17,7 +17,7 @@ const dash = (over: Partial<Dashboard> = {}): Dashboard => ({
 
 test("headline", () => {
   assert.deepEqual(headline(12), { lead: "12 issues need you.", tail: "Scan something new?" });
-  assert.equal(headline(1).lead, "1 issue needs you.");
+  assert.equal(headline(1)?.lead, "1 issue needs you.");
   assert.deepEqual(headline(0), { lead: "All clear.", tail: "Scan something new?" });
 });
 
@@ -54,4 +54,17 @@ test("meta line", () => {
   assert.equal(metaLine(2, "2026-10-29T11:00:00Z", now), "Workspace · 2 targets · last scan 1 h ago");
   assert.equal(metaLine(1, null, now), "Workspace · 1 target");
   assert.equal(metaLine(0, null, now), "Workspace · no targets yet");
+});
+
+test("no headline until the numbers are in", () => assert.equal(headline(null), null));
+
+test("the bars' legend counts what the bars draw", () =>
+  assert.deepEqual(barTotals([day(1, { high: 2, low: 1 }), day(2, { high: 1 }), { date: "2026-10-03", count: 5 }]), { critical: 0, high: 3, medium: 0, low: 1, info: 0 }));
+
+test("a picked profile that is gone falls back to Balanced", () => {
+  const usable = [{ id: "b", name: "Balanced", builtin: true }, { id: "q", name: "Quick", builtin: true }];
+  assert.equal(profileFor(usable, "q"), "q");
+  assert.equal(profileFor(usable, "deep"), "b");
+  assert.equal(profileFor([{ id: "c", name: "Custom", builtin: false }], null), "c");
+  assert.equal(profileFor([], "deep"), undefined);
 });

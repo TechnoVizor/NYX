@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
 import { useMe, useProfiles } from "@/lib/api/hooks";
 import type { ScopeInput, Target } from "@/lib/types";
+import { profileFor } from "@/lib/home";
 import { cn } from "@/lib/utils";
 
 /** What the user typed, as a scan target. The API normalizes and validates it. */
@@ -31,9 +32,8 @@ export function QuickScan() {
   const { data: me } = useMe();
   const { data: profiles } = useProfiles();
   const usable = profiles?.filter((p) => p.available) ?? [];
-  const balanced = usable.find((p) => p.builtin && p.name === "Balanced");
   const [picked, setPicked] = useState<string | null>(null);
-  const profileId = picked ?? balanced?.id ?? usable[0]?.id;
+  const profileId = profileFor(usable, picked);
   const [value, setValue] = useState("");
   const [outside, setOutside] = useState<Pick<ScopeInput, "kind" | "value"> | null>(null);
   const [authorization, setAuthorization] = useState("");
@@ -81,7 +81,7 @@ export function QuickScan() {
       {/* The command bar: one wide field, the profile as chips, a white Start. */}
       <form
         onSubmit={start}
-        className="flex min-h-13 flex-wrap items-center gap-2 rounded-lg border border-border-strong bg-surface-3 py-1.5 pr-1.5 pl-4 transition-colors focus-within:border-brand"
+        className="flex min-h-13 flex-wrap items-center gap-2 rounded-lg border border-input bg-surface-3 py-1.5 pr-1.5 pl-4 transition-colors focus-within:border-brand"
       >
         <Crosshair className="size-4 shrink-0 text-brand" aria-hidden />
         <input
@@ -123,7 +123,7 @@ export function QuickScan() {
       </form>
       {outside && me.role === "admin" && (
         <form onSubmit={addAndStart} className="mt-3 flex max-w-xl flex-col gap-2 rounded-lg border border-border bg-card p-4">
-          <p className="flex items-center gap-2 text-sm"><Crosshair className="size-4 text-brand" aria-hidden /><span className="font-mono">{outside.value}</span> is not a target yet.</p>
+          <p className="flex items-center gap-2 text-sm"><Crosshair className="size-4 shrink-0 text-brand" aria-hidden /><span className="min-w-0 font-mono break-all">{outside.value}</span> is not a target yet.</p>
           <label className="flex flex-col gap-1.5 text-sm">
             Who allowed it
             <Input value={authorization} onChange={(e) => setAuthorization(e.target.value)} placeholder="e.g. My own domain" />
@@ -139,7 +139,7 @@ export function QuickScan() {
       )}
       {outside && me.role !== "admin" && (
         <p className="mt-3 text-sm">
-          <span className="font-mono">{outside.value}</span> is not a target. Admins add them in{" "}
+          <span className="font-mono break-all">{outside.value}</span> is not a target. Admins add them in{" "}
           <Link href="/app/targets" className="underline">Targets</Link>.
         </p>
       )}
