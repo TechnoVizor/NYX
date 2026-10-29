@@ -15,8 +15,8 @@ import { findingStatuses, type FindingStatus } from "@/lib/types";
 const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
 const text = (v: unknown) => (typeof v === "string" ? v : "");
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>;
+function Section({ title, children, tour }: { title: string; children: React.ReactNode; tour?: string }) {
+  return <section data-tour={tour} className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>;
 }
 const pre = "overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs";
 
@@ -92,7 +92,7 @@ export function FindingDetail({ id }: { id: string }) {
         </Section>
       )}
       {text(d.curl) && <Section title="Reproduce"><pre className={pre}>{text(d.curl)}</pre></Section>}
-      <Section title="Review">
+      <Section title="Review" tour="review">
         {f.status_at && <p className="text-xs text-subtle">Last changed {when(f.status_at)}{f.status_note ? ` — ${f.status_note}` : ""}</p>}
         {canReview ? (
           <div className="flex max-w-xl flex-col gap-2">

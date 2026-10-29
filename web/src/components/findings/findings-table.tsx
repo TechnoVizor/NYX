@@ -80,8 +80,8 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
               <tr>{["Severity", "Finding", "Where", "Plugin", "Status", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
-              {rows.map((f) => (
-                <tr key={f.id} className="border-b border-border last:border-0 hover:bg-surface-1">
+              {rows.map((f, i) => (
+                <tr key={f.id} data-tour={i === 0 ? "finding-row" : undefined} className="border-b border-border last:border-0 hover:bg-surface-1">
                   <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
                   <td className="px-4 py-3">
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>

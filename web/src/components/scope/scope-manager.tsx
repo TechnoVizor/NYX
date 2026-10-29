@@ -53,7 +53,7 @@ export function ScopeManager() {
         </ul>
       )}
       {admin && (
-        <form onSubmit={add} className="space-y-3 rounded-lg border border-border p-4">
+        <form onSubmit={add} data-tour="target-form" className="space-y-3 rounded-lg border border-border p-4">
           <h2 className="text-sm font-semibold">Add a target</h2>
           <div className="flex flex-wrap gap-2">
             <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as ScopeInput["kind"] })} className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm" aria-label="Kind">

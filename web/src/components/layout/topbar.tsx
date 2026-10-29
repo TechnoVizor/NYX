@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Search } from "lucide-react";
+import { CircleHelp, LogOut, Search } from "lucide-react";
+import { TOUR_RESTART } from "@/components/tour/tour";
 import { api, ApiError } from "@/lib/api/client";
 import { useMe } from "@/lib/api/hooks";
 import { useUiStore } from "@/stores/ui-store";
@@ -48,6 +49,17 @@ export function Topbar() {
         <kbd className="kbd">Ctrl K</kbd>
       </button>
       <div className="ml-auto flex items-center gap-3 text-xs text-subtle">
+        {me && me.role !== "viewer" && (
+          <button
+            type="button"
+            onClick={() => dispatchEvent(new Event(TOUR_RESTART))}
+            aria-label="Restart the tour"
+            title="Restart the tour"
+            className="flex size-9 items-center justify-center rounded-lg border border-border transition-colors hover:border-border-strong hover:text-foreground"
+          >
+            <CircleHelp className="size-4" />
+          </button>
+        )}
         {signOutErr ? <span role="alert" className="text-sev-critical">{signOutErr}</span> : me && <span className="hidden sm:inline">{me.email} · {me.role}</span>}
         <button type="button" onClick={signOut} className="hidden h-8 items-center md:flex gap-1.5 rounded-lg border border-border px-2.5 transition-colors hover:border-border-strong hover:text-muted-foreground">
           <LogOut className="size-3.5" />Sign out
