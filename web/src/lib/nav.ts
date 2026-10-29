@@ -24,12 +24,9 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
+// Other settings (workspace, credentials, AI, resources, system) return with their phases; their routes stay URL-only.
 export const settingsTabs = [
-  { label: "Workspace", href: "/app/settings/workspace" },
-  { label: "Credentials", href: "/app/settings/credentials" },
-  { label: "AI", href: "/app/settings/ai" },
-  { label: "Resources", href: "/app/settings/resources" },
-  { label: "System", href: "/app/settings/system" },
+  { label: "Appearance", href: "/app/settings/appearance" },
 ];
 
 export const scanTabs = [
