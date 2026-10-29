@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { contrast, mix } from "./contrast.ts";
-import { THEMES, deriveTokens, hueOf, themeById } from "./themes.ts";
+import { readFileSync } from "node:fs";
+import { THEMES, deriveTokens, hueOf, themeById, themeCss } from "./themes.ts";
 
 const SURFACES = ["background", "surface-1", "surface-2", "surface-3"] as const;
 const TEXT = ["foreground", "muted-foreground", "subtle", "brand", "sev-critical", "sev-high", "sev-medium", "sev-low", "sev-info"] as const;
@@ -45,3 +46,6 @@ test("mix", () => {
   assert.equal(mix("#000000", "#ffffff", 0.5), "#808080");
   assert.equal(mix("#102030", "#102030", 0.3), "#102030");
 });
+
+test("committed themes.css is up to date", () =>
+  assert.equal(readFileSync(new URL("../app/themes.css", import.meta.url), "utf8"), themeCss()));

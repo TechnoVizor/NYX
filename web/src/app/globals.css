@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./themes.css";
 
-/* NYX is dark-only. Tokens live on :root so a light theme can be added later by scoping a second block. */
+/* Colour tokens come from themes.css (generated from src/lib/themes.ts); `dark` marks dark themes for shadcn variants. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -42,6 +43,15 @@
   --color-sev-medium: var(--sev-medium);
   --color-sev-low: var(--sev-low);
   --color-sev-info: var(--sev-info);
+  --color-sev-critical-soft: var(--sev-critical-soft);
+  --color-sev-high-soft: var(--sev-high-soft);
+  --color-sev-medium-soft: var(--sev-medium-soft);
+  --color-sev-low-soft: var(--sev-low-soft);
+  --color-sev-info-soft: var(--sev-info-soft);
+  --color-bar: var(--bar);
+  --color-on-bar: var(--on-bar);
+  --color-bar-alert: var(--bar-alert);
+  --color-on-bar-alert: var(--on-bar-alert);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -142,63 +152,6 @@
     transform: translateY(calc(-100% - var(--gap)));}}}
 
 :root {
-  color-scheme: dark;
-
-  /* Surfaces: canvas -> 1 -> 2 -> 3 (design brief, section 28) */
-  --background: #050506;
-  --surface-1: #0a0a0c;
-  --surface-2: #101014;
-  --surface-3: #16161b;
-
-  --foreground: #f4f4f5;
-  --muted-foreground: #a1a1aa;
-  --subtle: #8e8e97;
-
-  --card: var(--surface-1);
-  --card-foreground: var(--foreground);
-  --popover: var(--surface-2);
-  --popover-foreground: var(--foreground);
-
-  --primary: #f4f4f5;
-  --primary-foreground: #08080a;
-  --secondary: var(--surface-3);
-  --secondary-foreground: var(--foreground);
-  --muted: var(--surface-3);
-  --accent: rgb(255 255 255 / 0.06);
-  --accent-foreground: var(--foreground);
-  --destructive: #ff5d62;
-
-  --border: rgb(255 255 255 / 0.07);
-  --border-strong: rgb(255 255 255 / 0.12);
-  --input: #68686f;
-  --ring: #8ea2ff;
-
-  /* Brand accent: cold blue-violet */
-  --brand: #8ea2ff;
-  --brand-soft: rgb(142 162 255 / 0.14);
-
-  /* Severity (never the only signal: always paired with text + icon) */
-  --sev-critical: #ff5d62;
-  --sev-high: #ff9b52;
-  --sev-medium: #e6c95c;
-  --sev-low: #55c991;
-  --sev-info: #72a8ff;
-
-  --chart-1: #8ea2ff;
-  --chart-2: #72a8ff;
-  --chart-3: #55c991;
-  --chart-4: #e6c95c;
-  --chart-5: #ff9b52;
-
-  --sidebar: var(--surface-1);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: #08080a;
-  --sidebar-accent: rgb(255 255 255 / 0.06);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-
   --radius: 10px;
 }
 
@@ -220,7 +173,7 @@
   }
   html {
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 22%, transparent) transparent;
 }
 
 :where(a, button, [role="tab"], summary):focus-visible {
@@ -229,7 +182,7 @@
 }
 
 ::selection {
-    background: rgb(142 162 255 / 0.3);
+    background: color-mix(in srgb, var(--brand) 30%, transparent);
   }
   :focus-visible {
     outline: 2px solid var(--ring);
@@ -238,7 +191,7 @@
   /* Slim, quiet scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 14%, transparent) transparent;
   }
 }
 
@@ -249,7 +202,7 @@
   }
   /* Faint dotted grid, masked towards the edges */
   .bg-grid {
-    background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px);
+    background-image: radial-gradient(color-mix(in srgb, var(--foreground) 9%, transparent) 1px, transparent 1px);
     background-size: 28px 28px;
     mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 100%);
   }
