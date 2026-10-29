@@ -35,6 +35,10 @@ def test_dashboard_on_an_empty_database(client, admin):
     assert d["open_by_severity"] == {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     assert (d["open_total"], d["assets_total"], d["assets_new_7d"]) == (0, 0, 0)
     assert len(d["findings_per_day"]) == 30 and {p["count"] for p in d["findings_per_day"]} == {0}
+    assert all(
+        p["by_severity"] == dict.fromkeys(("critical", "high", "medium", "low", "info"), 0)
+        for p in d["findings_per_day"]
+    )
     assert d["findings_per_day"][-1]["date"] == datetime.now(UTC).date().isoformat()
     assert (d["recent_scans"], d["top_assets"]) == ([], [])
 
@@ -53,3 +57,18 @@ def test_dashboard_numbers(client, admin):
     assert len(d["recent_scans"]) == 1
     top = [(t["value"], t["open_findings"], t["worst_severity"]) for t in d["top_assets"]]
     assert top == [("http://a.example.com", 2, "critical"), ("http://b.example.com", 1, "medium")]
+
+
+def test_dashboard_per_day_by_severity(client, admin):
+    seed("A", "high", asset="http://a.example.com")
+    seed("B", "high", asset="http://a.example.com")
+    seed("C", "medium", asset="http://a.example.com")
+    seed("D", "low", asset="http://b.example.com", days_ago=3)
+    days = client.get("/api/v1/dashboard").json()["findings_per_day"]
+    assert days[-1] == {
+        "date": days[-1]["date"],
+        "count": 3,
+        "by_severity": {"critical": 0, "high": 2, "medium": 1, "low": 0, "info": 0},
+    }
+    assert days[-4]["by_severity"]["low"] == 1 and days[-4]["count"] == 1
+    assert all(set(p["by_severity"]) == {"critical", "high", "medium", "low", "info"} for p in days)
