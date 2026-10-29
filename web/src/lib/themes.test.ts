@@ -23,6 +23,7 @@ for (const theme of THEMES) {
     for (const s of ["critical", "high", "medium", "low", "info"] as const)
       assert.ok(contrast(k[`sev-${s}`], k[`sev-${s}-soft`]) >= 4.5, `sev-${s}: ${ratio(k[`sev-${s}`], k[`sev-${s}-soft`])}`);
     assert.ok(contrast(k.purple, k["purple-soft"]) >= 4.5, `purple: ${ratio(k.purple, k["purple-soft"])}`);
+    assert.ok(contrast(k.brand, k["brand-soft"]) >= 4.5, `brand on brand-soft: ${ratio(k.brand, k["brand-soft"])}`);
   });
   test(`${theme.id}: filled controls and status bar`, () => {
     const pairs = [["primary-foreground", "primary"], ["on-bar", "bar"], ["on-bar-alert", "bar-alert"], ["sidebar-primary-foreground", "sidebar-primary"]] as const;
