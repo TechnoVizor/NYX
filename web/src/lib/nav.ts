@@ -1,4 +1,4 @@
-import { Activity, Boxes, Crosshair, Home, Layers, type LucideIcon, Puzzle, ShieldAlert } from "lucide-react";
+import { Activity, Boxes, Crosshair, Home, Layers, type LucideIcon, Puzzle, Settings, ShieldAlert } from "lucide-react";
 
 // `step` numbers the path a new user follows; `tour` is the data-tour id the guided tour points at.
 export type NavItem = { label: string; href: string; icon: LucideIcon; tour: string; step?: number };
@@ -23,6 +23,8 @@ export const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+export const settingsNav: NavItem = { label: "Settings", href: "/app/settings/appearance", icon: Settings, tour: "nav-settings" };
 
 // Other settings (workspace, credentials, AI, resources, system) return with their phases; their routes stay URL-only.
 export const settingsTabs = [
