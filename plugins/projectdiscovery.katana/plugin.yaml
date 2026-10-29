@@ -1,0 +1,40 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.katana
+  name: Katana
+  publisher: ProjectDiscovery
+  version: 1.8.0
+  license: MIT
+  description: "Crawls a live web service by following its links, without a browser, and stays on that host. Static files are skipped."
+runtime:
+  type: oci
+  image: nyx-plugin/katana:1.8.0
+classification:
+  categories: [discovery, web]
+  risk_level: safe_active
+  trust_level: verified
+io:
+  accepts: [url]
+  produces: [asset, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 512
+  timeout_seconds: 1800
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 50
+config_schema:
+  type: object
+  additionalProperties: false
+  properties:
+    depth:
+      type: integer
+      minimum: 1
+      maximum: 3
+      default: 2

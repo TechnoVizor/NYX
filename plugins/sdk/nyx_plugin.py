@@ -7,6 +7,7 @@ run_tool() replays a recorded tool output instead of running the tool, so adapte
 
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -80,3 +81,29 @@ def _parse(lines) -> Iterator[dict]:
             yield json.loads(line)
         except json.JSONDecodeError:
             log(f"Skipped a line the tool printed that is not JSON: {line.strip()[:200]}", "warning")
+
+
+def resolvers() -> str:
+    """The sandbox's own DNS servers (Docker's), comma-separated, or "" if there are none.
+
+    Tools that bring a built-in list of public resolvers cannot reach them from a target_scope sandbox; these can.
+    """
+    try:
+        with open("/etc/resolv.conf", encoding="utf-8") as f:
+            return ",".join(p[1] for p in (line.split() for line in f) if len(p) > 1 and p[0] == "nameserver")
+    except OSError:
+        return ""
+
+
+def resolvable(hosts: list[str]) -> list[str]:
+    """The hosts that resolve, in order. Replaying a fixture has no network, so every host counts as resolvable."""
+    if os.environ.get("NYX_FIXTURE"):
+        return list(hosts)
+    out = []
+    for host in hosts:
+        try:
+            socket.getaddrinfo(host.strip("[]"), None)
+            out.append(host)
+        except OSError:
+            continue
+    return out

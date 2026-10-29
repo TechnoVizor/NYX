@@ -15,6 +15,10 @@ CASES = {
     "projectdiscovery.dnsx": ({"type": "domain", "value": "example.com"}, {"asset", "relation"}),
     "projectdiscovery.httpx": ({"type": "domain", "value": "testbed.nyx-lab.test"}, {"asset"}),
     "projectdiscovery.nuclei": ({"type": "url", "value": "http://testbed.nyx-lab.test"}, {"finding"}),
+    "projectdiscovery.naabu": ({"type": "domain", "value": "testbed.nyx-lab.test"}, {"asset"}),
+    "projectdiscovery.tlsx": ({"type": "domain", "value": "testbed.nyx-lab.test"}, {"asset", "relation"}),
+    "projectdiscovery.katana": ({"type": "url", "value": "http://testbed.nyx-lab.test"}, {"asset"}),
+    "lc.gau": ({"type": "domain", "value": "example.com"}, {"asset"}),
 }
 
 
@@ -148,3 +152,34 @@ def test_nuclei_fixture_maps_fields():
     assert git["target"] == target
     full = next(e for e in found if e["data"].get("cve"))
     assert full["data"]["cve"] == ["CVE-2021-41773"] and full["data"]["references"] and full["data"]["curl"]
+
+
+def assets(events, kind):
+    return [e["data"]["value"] for e in events if e["type"] == "asset" and e["data"]["kind"] == kind]
+
+
+def test_naabu_reports_each_port_once():
+    # The fixture has every port twice: naabu repeats them on its verification pass.
+    events = run_adapter("projectdiscovery.naabu", [{"type": "domain", "value": "testbed.nyx-lab.test"}])
+    assert assets(events, "port") == ["testbed.nyx-lab.test:80", "testbed.nyx-lab.test:443"]
+
+
+def test_tlsx_certificate_and_its_names():
+    events = run_adapter("projectdiscovery.tlsx", [{"type": "domain", "value": "testbed.nyx-lab.test"}])
+    assert len(assets(events, "certificate")) == 1
+    assert assets(events, "subdomain") == ["admin.nyx-lab.test"]  # the SAN that is not the host itself
+    assert not [e for e in events if e["type"] == "finding"]  # Nuclei's ssl templates own certificate findings
+
+
+def test_katana_endpoints_are_unique_and_on_the_host():
+    events = run_adapter("projectdiscovery.katana", [{"type": "url", "value": "http://testbed.nyx-lab.test"}])
+    urls = assets(events, "endpoint")
+    assert len(urls) == len(set(urls)) >= 3
+    assert all(u.startswith("http://testbed.nyx-lab.test") for u in urls)
+
+
+def test_gau_dedupes_archived_urls():
+    events = run_adapter("lc.gau", [{"type": "domain", "value": "example.com"}])
+    urls = assets(events, "endpoint")
+    assert urls and len(urls) == len(set(urls))
+    assert {e["target"]["value"] for e in events if e["type"] == "asset"} == {"example.com"}
