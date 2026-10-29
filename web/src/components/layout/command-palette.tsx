@@ -13,12 +13,14 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { useMe } from "@/lib/api/hooks";
 import { navGroups } from "@/lib/nav";
 import { useUiStore } from "@/stores/ui-store";
 
 export function CommandPalette() {
   const router = useRouter();
   const { paletteOpen, setPaletteOpen } = useUiStore();
+  const canScan = useMe().data?.role !== "viewer";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -43,12 +45,16 @@ export function CommandPalette() {
       <CommandInput placeholder="Search pages, scans, findings…" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup heading="Actions">
-          <CommandItem onSelect={() => go("/app/scans/new")}>
-            <Plus /> New scan
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
+        {canScan && (
+          <>
+            <CommandGroup heading="Actions">
+              <CommandItem onSelect={() => go("/app/scans/new")}>
+                <Plus /> New scan
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
         {navGroups.map((group) => (
           <CommandGroup key={group.label} heading={group.label}>
             {group.items.map(({ label, href, icon: Icon }) => (

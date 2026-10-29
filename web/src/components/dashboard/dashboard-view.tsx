@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/shared/time";
 import Link from "next/link";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
@@ -53,7 +54,7 @@ function Sparkline({ points }: { points: Dashboard["findings_per_day"] }) {
         {/* Hover targets wider than the line: one column per day. */}
         {points.map((p, i) => <rect key={p.date} x={xy[i][0] - step / 2} y={0} width={step} height={h} fill="transparent"><title>{`${p.date}: ${p.count}`}</title></rect>)}
       </svg>
-      <p className="mt-2 flex justify-between text-[11px] text-subtle"><span>{points[0]?.date}</span><span>{total} new in 30 days</span><span>{points.at(-1)?.date}</span></p>
+      <p className="mt-2 flex justify-between text-xs text-subtle"><span>{points[0]?.date}</span><span>{total} new in 30 days</span><span>{points.at(-1)?.date}</span></p>
     </div>
   );
 }
@@ -83,7 +84,7 @@ export function DashboardView() {
               <li key={s.id} className={item}>
                 <Link href={`/app/scans/${s.id}`} className="font-medium hover:underline">{s.root_target.value}</Link>
                 <StatusText status={s.status} />
-                <span className="ml-auto text-xs text-subtle">{new Date(s.created_at).toLocaleString()}</span>
+                <span className="ml-auto text-xs text-subtle"><Time iso={s.created_at} /></span>
               </li>
             ))}
             {!d.recent_scans.length && <li className={`${item} text-xs text-muted-foreground`}>No scans yet.&nbsp;<Link href="/app/scans/new" className="underline">Start one.</Link></li>}

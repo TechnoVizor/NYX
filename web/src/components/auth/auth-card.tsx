@@ -8,7 +8,7 @@ import { api, ApiError } from "@/lib/api/client";
 import { siteUrl } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-const mono = "font-mono text-[10.5px] uppercase tracking-[0.14em]";
+const mono = "font-mono text-xs uppercase tracking-[0.14em]";
 const display = "font-display font-medium tracking-[-0.05em]";
 
 const slide = {
@@ -76,7 +76,7 @@ export function AuthCard({ signup, onToggle }: { signup: boolean; onToggle: () =
           </button>
         )}
       </div>
-      {err[k] && <p id={`${k}-err`} role="alert" className={cn(mono, "mt-2 text-[10px] text-sev-critical")}>{err[k]}</p>}
+      {err[k] && <p id={`${k}-err`} role="alert" className={cn(mono, "mt-2 text-xs text-sev-critical")}>{err[k]}</p>}
     </div>
   );
 
@@ -109,13 +109,13 @@ export function AuthCard({ signup, onToggle }: { signup: boolean; onToggle: () =
               <>
                 <div className="-mt-3 flex items-center gap-1.5" aria-hidden>
                   {[0, 1, 2, 3].map((i) => <span key={i} className={cn("h-[2px] flex-1 transition-colors duration-300", i < sc ? (sc <= 1 ? "bg-sev-critical" : sc === 2 ? "bg-sev-medium" : "bg-sev-low") : "bg-white/10")} />)}
-                  <span className={cn(mono, "ml-2 min-w-[46px] text-[9.5px] text-white/50")}>{labels[sc]}</span>
+                  <span className={cn(mono, "ml-2 min-w-[46px] text-xs text-white/50")}>{labels[sc]}</span>
                 </div>
                 {field("pw2", "Repeat password", show ? "text" : "password", "Repeat your password", "new-password")}
               </>
             )}
 
-            {formErr && <p role="alert" className={cn(mono, "text-[10px] text-sev-critical")}>{formErr}</p>}
+            {formErr && <p role="alert" className={cn(mono, "text-xs text-sev-critical")}>{formErr}</p>}
             <button type="submit" disabled={busy} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand text-[14px] font-medium text-black transition-transform hover:scale-[1.01] disabled:opacity-60">
               {busy ? "One moment…" : signup ? "Create account" : "Log in"}<ArrowRight className="size-4" aria-hidden />
             </button>

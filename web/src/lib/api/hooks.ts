@@ -31,6 +31,11 @@ export const useMe = () => useQuery({ queryKey: ["me"], queryFn: api.me, retry: 
 const live = (s?: RunStatus) => s === "PENDING" || s === "RUNNING";
 
 export const usePlugins = () => useQuery({ queryKey: ["plugins"], queryFn: api.listPlugins });
+/** "Nuclei", not "projectdiscovery.nuclei"; falls back to the id's last part while plugins load. */
+export const usePluginName = () => {
+  const { data } = usePlugins();
+  return (id: string) => data?.find((p) => p.id === id)?.name ?? id.split(".").pop() ?? id;
+};
 export const usePlugin = (id: string) => useQuery({ queryKey: ["plugins", id], queryFn: () => api.getPlugin(id) });
 export const useRun = (id: string | null) =>
   useQuery({ queryKey: ["runs", id], queryFn: () => api.getRun(id!), enabled: !!id, refetchInterval: (q) => (live(q.state.data?.status) ? 1000 : false) });

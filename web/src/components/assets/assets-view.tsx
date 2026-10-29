@@ -1,11 +1,14 @@
 "use client";
 
+import { Time } from "@/components/shared/time";
+import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
+import { Boxes, Globe, Link2, Lock, Network, Plug, SearchX, Server, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FindingStatusText } from "@/components/findings/finding-status";
-import { LoadMore, selectClass, when } from "@/components/findings/findings-table";
+import { LoadMore } from "@/components/findings/findings-table";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
 import { useAsset, useAssets } from "@/lib/api/hooks";
@@ -17,6 +20,18 @@ const kindName: Record<string, string> = {
   port: "Port", certificate: "Certificate", endpoint: "Endpoint",
 };
 const kindLabel = (k: string) => kindName[k] ?? k;
+const kindIcon: Record<string, typeof Globe> = { http_service: Globe, subdomain: Network, domain: Network, ip: Server, port: Plug, certificate: Lock, endpoint: Link2 };
+
+function KindIcon({ kind }: { kind: string }) {
+  const Icon = kindIcon[kind] ?? Boxes;
+  return <Icon className="size-4 shrink-0 text-muted-foreground" aria-label={kindLabel(kind)} />;
+}
+
+function HttpCode({ code }: { code: unknown }) {
+  if (typeof code !== "number") return null;
+  const tone = code < 300 ? "text-sev-low border-sev-low/40" : code < 400 ? "text-sev-info border-sev-info/40" : "text-sev-high border-sev-high/40";
+  return <span className={`rounded border px-1 font-mono text-xs ${tone}`}>{code}</span>;
+}
 const list = "rounded-lg border border-border text-sm";
 const item = "flex items-center gap-3 border-b border-border px-3 py-2 last:border-0";
 
@@ -24,7 +39,7 @@ const item = "flex items-center gap-3 border-b border-border px-3 py-2 last:bord
 function summary({ data: d }: Asset) {
   const tech = Array.isArray(d.tech) ? d.tech.slice(0, 3).join(", ") : "";
   const expires = typeof d.not_after === "string" ? `expires ${d.not_after.slice(0, 10)}` : "";
-  return [d.status_code, d.title, tech, d.ip, d.subject_cn, d.issuer, expires, d.source]
+  return [d.title, tech, d.ip, d.subject_cn, d.issuer, expires]
     .filter((v) => v != null && v !== "").map(String).join(" · ");
 }
 
@@ -40,45 +55,58 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind" className={selectClass}>
-          <option value="">Every kind</option>
-          {Object.entries(kindName).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-        </select>
+        <Choice value={kind} onChange={setKind} label="Kind" options={[{ value: "", label: "Every kind" }, ...Object.entries(kindName).map(([value, label]) => ({ value, label }))]} />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search assets" className="max-w-xs" />
         {data && <span className="ml-auto text-xs text-subtle">{data.pages[0].total} assets</span>}
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading assets…</p> : !rows.length ? (
-        kind || query ? (
-          <p className="text-sm text-muted-foreground">
-            No assets match these filters.{" "}
-            <button type="button" onClick={() => { setKind(""); setQ(""); }} className="underline">Clear filters</button>
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">No assets yet. Every host and service a scan finds lands here.</p>
-        )
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
+          {kind || query ? <SearchX className="size-5 shrink-0" aria-hidden /> : <Boxes className="size-5 shrink-0 text-brand" aria-hidden />}
+          {kind || query ? (
+            <span>No assets match these filters. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></span>
+          ) : (
+            <span>No assets yet. A scan fills this list.</span>
+          )}
+        </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <>
+        {/* Phones: one row per asset with what matters. */}
+        <ul className="flex flex-col gap-2 md:hidden">
+          {rows.map((a) => (
+            <li key={a.id}>
+              <button type="button" onClick={() => setOpen(a.id)} className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-surface-1">
+                <KindIcon kind={a.kind} />
+                <span className="min-w-0 flex-1 truncate font-mono text-xs">{a.value}</span>
+                <HttpCode code={a.data.status_code} />
+                {a.open_findings > 0 && <span className="flex items-center gap-1 text-xs text-sev-high"><ShieldAlert className="size-3.5" aria-hidden />{a.open_findings}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs text-subtle">
-              <tr>{["Asset", "Kind", "Details", "Open findings", "First seen", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
+              <tr>{["Asset", "Details", "Open findings", "First seen", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((a) => (
                 <tr key={a.id} className="border-b border-border last:border-0 hover:bg-surface-1">
-                  <td className="max-w-80 truncate px-4 py-3">
-                    <button type="button" onClick={() => setOpen(a.id)} className="font-mono text-xs hover:underline" title={a.value}>{a.value}</button>
+                  <td className="max-w-96 px-4 py-3">
+                    <button type="button" onClick={() => setOpen(a.id)} className="flex max-w-full items-center gap-2 font-mono text-xs hover:underline" title={`${kindLabel(a.kind)}: ${a.value}`}>
+                      <KindIcon kind={a.kind} /><span className="truncate">{a.value}</span>
+                    </button>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{kindLabel(a.kind)}</td>
-                  <td className="max-w-72 truncate px-4 py-3 text-xs text-muted-foreground">{summary(a)}</td>
+                  <td className="max-w-72 px-4 py-3 text-xs text-muted-foreground"><span className="flex items-center gap-2"><HttpCode code={a.data.status_code} /><span className="truncate">{summary(a)}</span></span></td>
                   <td className="px-4 py-3 font-mono text-xs">{a.open_findings || "—"}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{when(a.first_seen)}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{when(a.last_seen)}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground"><Time iso={a.first_seen} /></td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground"><Time iso={a.last_seen} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
       <LoadMore more={!!hasNextPage} busy={isFetchingNextPage} onMore={() => fetchNextPage()} />
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
@@ -95,7 +123,7 @@ function AssetPanel({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-5">
       <DialogHeader><DialogTitle className="break-all font-mono text-sm">{a.value}</DialogTitle></DialogHeader>
-      <p className="text-xs text-subtle">{kindLabel(a.kind)} · first seen {when(a.first_seen)} · last seen {when(a.last_seen)}</p>
+      <p className="text-xs text-subtle">{kindLabel(a.kind)} · first seen <Time iso={a.first_seen} /> · last seen <Time iso={a.last_seen} /></p>
       <pre className="overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs">{JSON.stringify(a.data, null, 2)}</pre>
       <section>
         <h3 className="mb-2 text-sm font-semibold">Findings</h3>
@@ -117,7 +145,7 @@ function AssetPanel({ id }: { id: string }) {
             <li key={s.id} className={item}>
               <Link href={`/app/scans/${s.id}`} className="underline">{s.root_target.value}</Link>
               <StatusText status={s.status} />
-              <span className="ml-auto text-subtle">{when(s.created_at)}</span>
+              <span className="ml-auto text-subtle"><Time iso={s.created_at} /></span>
             </li>
           ))}
           {!a.scans.length && <li className={`${item} text-muted-foreground`}>No scans recorded.</li>}

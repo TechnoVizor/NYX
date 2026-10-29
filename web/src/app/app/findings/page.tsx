@@ -8,7 +8,7 @@ export default async function Page(props: PageProps<"/app/findings">) {
   const searchParams = await props.searchParams;
   return (
     <>
-      <PageHeader title="Findings" description="Everything my scanners reported, once per issue, across every scan. Review it here." />
+      <PageHeader title="Findings" description="One row per issue, across all scans." />
       <FindingsTable searchParams={searchParams} />
     </>
   );

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Scan Profiles" };
 export default function Page() {
   return (
     <>
-      <PageHeader title="Scan profiles" description="Saved sets of plugins, settings and depth. Quick and Balanced are built in and never change, so their results stay comparable." />
+      <PageHeader title="Scan profiles" description="Saved sets of plugins and depth." />
       <ProfilesView />
     </>
   );

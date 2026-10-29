@@ -6,6 +6,7 @@ export const findingStatuses: FindingStatus[] = ["open", "confirmed", "false_pos
 export type RiskLevel = "passive" | "safe_active" | "active" | "intrusive";
 export type TargetType = "domain" | "ip" | "cidr" | "url" | "service";
 export type Target = { type: TargetType; value: string };
+export const targetTypeName: Record<TargetType, string> = { domain: "Domain", ip: "IP address", cidr: "IP range", url: "URL", service: "Host and port" };
 
 export type PluginSummary = {
   id: string; name: string; publisher: string; description: string; categories: string[];

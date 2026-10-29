@@ -8,7 +8,7 @@ export default async function Page(props: PageProps<"/app/assets">) {
   const searchParams = await props.searchParams;
   return (
     <>
-      <PageHeader title="Assets" description="Every host, address and web service my scans have seen, with what is still open on it." />
+      <PageHeader title="Assets" description="Everything my scans have seen." />
       <AssetsView searchParams={searchParams} />
     </>
   );

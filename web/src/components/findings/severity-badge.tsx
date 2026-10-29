@@ -10,5 +10,5 @@ const tone: Record<Severity, string> = {
 };
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
-  return <span className={cn("rounded border px-1.5 py-0.5 font-mono text-[10.5px] uppercase tracking-wider", tone[severity])}>{severity}</span>;
+  return <span className={cn("inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-xs capitalize whitespace-nowrap", tone[severity])}><span className="size-1.5 rounded-full bg-current" aria-hidden />{severity}</span>;
 }
