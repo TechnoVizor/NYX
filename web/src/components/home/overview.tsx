@@ -117,7 +117,7 @@ function SeverityRing({ open, total }: { open: Dashboard["open_by_severity"]; to
             strokeDasharray={`${Math.max(p.share * c - (parts.length > 1 ? 3 : 0), 0.5)} ${c}`} strokeDashoffset={-starts[i]} transform="rotate(-90 60 60)" />
         ))}
         <text x={60} y={60} textAnchor="middle" className="fill-foreground font-mono text-[26px] font-medium">{total}</text>
-        <text x={60} y={78} textAnchor="middle" className="fill-muted-foreground text-[11px]">open</text>
+        <text x={60} y={78} textAnchor="middle" className="fill-muted-foreground text-[12px]">open</text>
       </svg>
       <ul className="mt-auto grid grid-cols-2 gap-2 text-[13px] text-muted-foreground">
         {(["critical", "high", "medium", "low"] as const).map((s) => (
