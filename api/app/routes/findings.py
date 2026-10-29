@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, or_, select
 
-from app.findings import SEVERITIES, STATUSES
+from app.findings import SENSITIVE, SEVERITIES, STATUSES, masked, masked_event
 from app.models import Asset, Finding, FindingOccurrence, PluginEvent, Scan, User
 from app.security import DB, current_user, require_role
 
@@ -65,7 +65,7 @@ def _detail(db, f: Finding) -> dict:
         )
     return {
         **row(f, a, len(occ)),
-        "data": f.data,
+        "data": masked(f.data),
         "status_note": f.status_note,
         "status_by": f.status_by,
         "status_at": f.status_at,
@@ -73,7 +73,7 @@ def _detail(db, f: Finding) -> dict:
             {"scan_id": o.scan_id, "root_target": t, "run_id": o.run_id, "event_seq": o.event_seq, "seen_at": o.seen_at}
             for o, t in occ
         ],
-        "raw": raw,
+        "raw": masked_event(raw),
     }
 
 
@@ -123,6 +123,13 @@ def list_findings(
 @router.get("/{finding_id}")
 def get_finding(finding_id: uuid.UUID, db: DB, _: Anyone):
     return _detail(db, _get(db, finding_id))
+
+
+@router.get("/{finding_id}/reveal")
+def reveal(finding_id: uuid.UUID, db: DB, _: Operator):
+    """The raw values behind the masked ones, for someone who has to act on them."""
+    f = _get(db, finding_id)
+    return {k: f.data[k] for k in SENSITIVE if k in f.data}
 
 
 @router.patch("/{finding_id}")

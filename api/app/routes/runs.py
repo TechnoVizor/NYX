@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.findings import masked_event
 from app.models import PluginEvent, PluginRun, PluginVersion, User
 from app.security import DB, current_user
 
@@ -67,4 +68,7 @@ def get_run(run_id: uuid.UUID, db: DB, _: Anyone):
 @router.get("/{run_id}/events", response_model=list[EventOut])
 def run_events(run_id: uuid.UUID, db: DB, _: Anyone, after: Annotated[int, Query(ge=0)] = 0):
     q = select(PluginEvent).where(PluginEvent.run_id == run_id, PluginEvent.seq > after).order_by(PluginEvent.seq)
-    return db.scalars(q.limit(500)).all()
+    return [
+        EventOut(seq=e.seq, type=e.type, valid=e.valid, payload=masked_event(e.payload))
+        for e in db.scalars(q.limit(500))
+    ]

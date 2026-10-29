@@ -59,6 +59,7 @@ export const api = {
   cancelScan: (id: string) => post<Scan>(`/scans/${id}/cancel`),
   listFindings: (f: FindingFilters, after = 0) => call<Page<FindingRow>>(`/findings${qs({ ...f, after })}`),
   getFinding: (id: string) => call<FindingDetail>(`/findings/${id}`),
+  revealFinding: (id: string) => call<{ extracted?: string[] }>(`/findings/${id}/reveal`),
   reviewFinding: (id: string, body: { status: FindingStatus; note?: string }) => send<FindingDetail>("PATCH", `/findings/${id}`, body),
   listAssets: (f: { kind?: string; q?: string }, after = 0) => call<Page<Asset>>(`/assets${qs({ ...f, after })}`),
   getAsset: (id: string) => call<AssetDetail>(`/assets/${id}`),

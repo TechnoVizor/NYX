@@ -27,19 +27,34 @@ export function FindingDetail({ id }: { id: string }) {
   const [status, setStatus] = useState<FindingStatus | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [revealed, setRevealed] = useState<string[] | null>(null);
+  const [revealErr, setRevealErr] = useState("");
   if (error) return <p role="alert" className="text-sm text-sev-critical">{error.message}</p>;
   if (!f) return <p className="text-sm text-muted-foreground">Loading the finding…</p>;
   const d = f.data;
   const canReview = me?.role === "admin" || me?.role === "analyst";
 
+  const reveal = async () => {
+    setRevealErr("");
+    try {
+      setRevealed((await api.revealFinding(id)).extracted ?? []);
+    } catch (x) {
+      setRevealErr(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
+    }
+  };
+
   const save = async () => {
     setMsg("");
+    setBusy(true);
     try {
       await api.reviewFinding(id, { status: status ?? f.status, note: (note ?? f.status_note ?? "") || undefined });
       await Promise.all([qc.invalidateQueries({ queryKey: ["findings"] }), qc.invalidateQueries({ queryKey: ["dashboard"] })]);
       setMsg("Saved.");
     } catch (x) {
-      setMsg(x instanceof ApiError ? x.message : "Something went wrong.");
+      setMsg(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -64,7 +79,18 @@ export function FindingDetail({ id }: { id: string }) {
           <ul className="text-xs">{list(d.references).map((r) => <li key={r}><a href={r} target="_blank" rel="noreferrer noopener" className="break-all underline">{r}</a></li>)}</ul>
         </Section>
       )}
-      {list(d.extracted).length > 0 && <Section title="Extracted"><pre className={pre}>{list(d.extracted).join("\n")}</pre></Section>}
+      {list(d.extracted).length > 0 && (
+        <Section title="Extracted">
+          <pre className={pre}>{(revealed ?? list(d.extracted)).join("\n")}</pre>
+          {canReview ? (
+            <div className="flex items-center gap-3 text-xs">
+              <Button variant="outline" size="sm" onClick={revealed ? () => setRevealed(null) : reveal}>{revealed ? "Mask values" : "Show values"}</Button>
+              <span className="text-subtle">{revealed ? "Raw values. They can be live secrets." : "Masked: these can be live secrets."}</span>
+              {revealErr && <span role="alert" className="text-sev-critical">{revealErr}</span>}
+            </div>
+          ) : <p className="text-xs text-subtle">Masked: these can be live secrets. Analysts and admins can show them.</p>}
+        </Section>
+      )}
       {text(d.curl) && <Section title="Reproduce"><pre className={pre}>{text(d.curl)}</pre></Section>}
       <Section title="Review">
         {f.status_at && <p className="text-xs text-subtle">Last changed {when(f.status_at)}{f.status_note ? ` — ${f.status_note}` : ""}</p>}
@@ -74,7 +100,7 @@ export function FindingDetail({ id }: { id: string }) {
               {findingStatuses.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
             </select>
             <Textarea value={note ?? f.status_note ?? ""} onChange={(e) => setNote(e.target.value)} placeholder="Why (optional)" maxLength={2000} aria-label="Note" />
-            <div className="flex items-center gap-3"><Button onClick={save}>Save review</Button>{msg && <span role="status" className="text-xs text-muted-foreground">{msg}</span>}</div>
+            <div className="flex items-center gap-3"><Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save review"}</Button>{msg && <span role="status" className="text-xs text-muted-foreground">{msg}</span>}</div>
           </div>
         ) : <p className="text-xs text-subtle">Viewers can&apos;t change the review.</p>}
       </Section>

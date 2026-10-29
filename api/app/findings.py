@@ -17,6 +17,26 @@ OPEN = ("open", "confirmed")
 LINKABLE = ("http_service", "subdomain", "domain", "ip")
 
 
+# Values a plugin pulled out of a response: Nuclei's extracted-results can be an .env line or a token. The API only ever
+# shows them masked; the raw value stays in the database for GET /findings/{id}/reveal (operators only).
+SENSITIVE = ("extracted",)
+
+
+def mask(value) -> str:
+    s = str(value)
+    return f"{s[:4]}••••" if len(s) > 8 else "••••"
+
+
+def masked(data: dict) -> dict:
+    return {k: [mask(x) for x in v] if k in SENSITIVE and isinstance(v, list) else v for k, v in data.items()}
+
+
+def masked_event(payload: dict | None) -> dict | None:
+    if not payload or not isinstance(payload.get("data"), dict):
+        return payload
+    return {**payload, "data": masked(payload["data"])}
+
+
 def fingerprint(plugin_id: str, template_id: str, matched_at: str) -> str:
     return hashlib.sha256(f"{plugin_id}|{template_id}|{matched_at}".encode()).hexdigest()
 
