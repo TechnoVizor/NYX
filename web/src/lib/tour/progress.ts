@@ -30,3 +30,15 @@ export function progress(f: Facts) {
   const current = items.find((i) => !i.done)?.id ?? null;
   return { items, current, allDone: current === null };
 }
+
+export type Action = "add-target" | "wait-admin" | "start-scan" | "watch-scan" | "run-again" | "open-findings";
+
+/** What the checklist offers for its current item: only actions the role can take, and a way out of a failed scan. */
+export function action(id: ItemId, f: Facts): Action {
+  if (id === "target") return f.role === "admin" ? "add-target" : "wait-admin";
+  if (id === "scan") return "start-scan";
+  const newest = f.scans[0]?.status;
+  if (newest && !finished(newest) && newest !== "FAILED" && newest !== "CANCELLED") return "watch-scan";
+  if (!f.scans.some((s) => finished(s.status))) return "run-again";
+  return "open-findings";
+}

@@ -27,5 +27,8 @@ export function useProgress() {
         reviewedTotal: reviewedQ.data!.total,
       }
     : undefined;
-  return { facts, result: facts && progress(facts), isLoading: !ready };
+  const queries = [me, scope, scans, all, reviewedQ];
+  const error = ready ? undefined : queries.find((q) => q.error)?.error;
+  const retry = () => queries.forEach((q) => q.error && q.refetch());
+  return { facts, result: facts && progress(facts), isLoading: !ready && !error, error, retry };
 }

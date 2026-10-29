@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { Box } from "@/components/tour/spotlight";
 import type { StepCopy } from "@/components/tour/steps";
+import { focusIsFree } from "@/components/tour/focus";
 
 const W = 380; // card width on wide screens
 const GAP = 14;
@@ -54,10 +55,17 @@ export function TourCard({
     };
   }, []);
 
-  // A new step takes the keyboard focus, so the next action is one Enter away; Esc skips the tour.
-  useEffect(() => first.current?.focus({ preventScroll: true }), [copy.title]);
+  // A new step takes the keyboard focus and Esc skips the tour, but only when the user is not busy elsewhere
+  // (typing in a field, working in a dialog): a scan finishing in the background must not steal the cursor.
+  const free = () => {
+    const active = document.activeElement;
+    return focusIsFree({ onBody: !active || active === document.body, inCard: !!active && !!ref.current?.contains(active) });
+  };
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onSkip();
+    if (free()) first.current?.focus({ preventScroll: true });
+  }, [copy.title]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && free() && onSkip();
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [onSkip]);

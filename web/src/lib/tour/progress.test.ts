@@ -34,3 +34,18 @@ test("a reviewed finding completes the path", () => {
 test("a failed scan with nothing found does not count as reviewed", () => {
   assert.equal(progress(facts({ scopeCount: 1, scans: [scan("FAILED")] })).current, "review");
 });
+
+import { action } from "./progress.ts";
+
+test("the checklist gives each role an action it can take", () => {
+  assert.equal(action("target", facts()), "add-target");
+  assert.equal(action("target", facts({ role: "analyst" })), "wait-admin");
+  assert.equal(action("scan", facts({ scopeCount: 1 })), "start-scan");
+});
+
+test("a running scan is watched, a failed one is run again, a finished one is reviewed", () => {
+  assert.equal(action("review", facts({ scopeCount: 1, scans: [scan("RUNNING")] })), "watch-scan");
+  assert.equal(action("review", facts({ scopeCount: 1, scans: [scan("FAILED")] })), "run-again");
+  assert.equal(action("review", facts({ scopeCount: 1, scans: [scan("CANCELLED")] })), "run-again");
+  assert.equal(action("review", facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 2 })), "open-findings");
+});

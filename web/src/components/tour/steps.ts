@@ -61,6 +61,7 @@ export function copyFor(view: NonNullable<TourView>, f: Facts, pathname: string)
         name: "Scan",
         title: "That scan didn't finish",
         body: `${f.scans[0]?.error ?? "It stopped before any plugin succeeded."} Check the target and run it again.`,
+        primary: { label: "Run again", href: "/app/dashboard#quick-scan" },
         ...on(pathname, home, "quick-scan", "nav-home", "Home"),
       };
     case "findings/no-findings":

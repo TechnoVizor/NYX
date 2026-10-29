@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { scanLive } from "@/lib/api/hooks";
-import type { Facts, ItemId } from "@/lib/tour/progress";
+import { action, type Facts, type ItemId } from "@/lib/tour/progress";
 import { cn } from "@/lib/utils";
 
 const label: Record<ItemId, string> = {
@@ -20,19 +19,32 @@ const focusQuickScan = () => {
   document.getElementById("quick-scan-target")?.focus({ preventScroll: true });
 };
 
-/** What the current step asks for: one action, or a sentence when there is nothing to click yet. */
+/** What the current step asks for: one action the role can take, or a sentence when there is nothing to click yet. */
 function Action({ id, facts }: { id: ItemId; facts: Facts }) {
   const primary = buttonVariants({ size: "sm" });
-  if (id === "target") return <Link href="/app/targets" className={primary}>Add a target</Link>;
-  if (id === "scan") return <button type="button" onClick={focusQuickScan} className={primary}>Start a scan</button>;
-  const latest = facts.scans[0];
-  if (latest && scanLive(latest.status))
-    return (
-      <p className="text-sm text-muted-foreground">
-        Your scan is running. <Link href={`/app/scans/${latest.id}`} className="text-foreground underline">Watch it</Link>; what I find lands in Findings.
-      </p>
-    );
-  return <Link href="/app/findings" className={primary}>Open findings</Link>;
+  switch (action(id, facts)) {
+    case "add-target":
+      return <Link href="/app/targets" className={primary}>Add a target</Link>;
+    case "wait-admin":
+      return <p className="text-sm text-muted-foreground">An admin adds targets; then you can scan them.</p>;
+    case "start-scan":
+      return <button type="button" onClick={focusQuickScan} className={primary}>Start a scan</button>;
+    case "watch-scan":
+      return (
+        <p className="text-sm text-muted-foreground">
+          Your scan is running. <Link href={`/app/scans/${facts.scans[0].id}`} className="text-foreground underline">Watch it</Link>
+        </p>
+      );
+    case "run-again":
+      return (
+        <span className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          That scan didn&apos;t finish.
+          <button type="button" onClick={focusQuickScan} className={primary}>Run again</button>
+        </span>
+      );
+    default:
+      return <Link href="/app/findings" className={primary}>Open findings</Link>;
+  }
 }
 
 export function NextSteps({ facts, items, current, allDone }: { facts: Facts; items: { id: ItemId; done: boolean }[]; current: ItemId | null; allDone: boolean }) {
