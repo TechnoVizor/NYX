@@ -4,7 +4,7 @@ import ipaddress
 import re
 from collections.abc import Sequence
 from typing import Protocol
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 _LABEL = r"(?!-)[a-z0-9-]{1,63}(?<!-)"
 _DOMAIN = re.compile(rf"^(?=.{{1,253}}$)(?:{_LABEL}\.)+{_LABEL}$")
@@ -41,15 +41,38 @@ def normalize_entry(kind: str, value: str) -> str:
     raise ValueError(f"Unknown scope kind {kind!r}.")
 
 
+def canonical_url(url: str) -> str:
+    """The URL without a port its scheme implies, so https://h:443/x and https://h/x are one thing. Nothing else
+    changes: tools get URLs as written."""
+    parts = urlsplit(url)
+    try:
+        port = parts.port
+    except ValueError:
+        return url
+    if port is not None and port == {"http": 80, "https": 443}.get(parts.scheme.lower()):
+        return urlunsplit(parts._replace(netloc=parts.netloc.rsplit(":", 1)[0]))
+    return url
+
+
+def _service(value: str) -> tuple[str, int]:
+    """host:port -> (host, port). Raise ValueError without a valid port."""
+    parts = urlsplit(f"//{value}")
+    if not parts.hostname or parts.port is None:  # .port raises ValueError for 70000 or "http"
+        raise ValueError(f"{value!r} is not host:port.")
+    return parts.hostname, parts.port
+
+
 def parse_target(type: str, value: str):
     """Return ("domain", name) | ("ip", address) | ("cidr", network). Raise ValueError if it cannot be parsed."""
     # urlsplit silently drops tab/CR/LF, and tools read newlines as "next target": refuse them outright,
     # so what is checked here is exactly what the plugin receives.
     if any(c.isspace() or not c.isprintable() for c in value):
         raise ValueError("Targets cannot contain spaces, line breaks or control characters.")
-    if type == "url" and ("@" in value or "\\" in value):
+    if type in ("url", "service") and ("@" in value or "\\" in value):
         raise ValueError("URLs with @ or backslashes are refused: they can point somewhere other than they look.")
-    if type == "url":
+    if type == "service":
+        value, type = _service(value)[0], "domain"
+    elif type == "url":
         host = urlsplit(value if "://" in value else f"//{value}").hostname
         if not host:
             raise ValueError(f"{value!r} has no host.")
@@ -70,7 +93,10 @@ def normalized_target(type: str, value: str) -> dict:
     """The target exactly as the plugin will get it. URLs keep their path; hosts are normalized."""
     kind, parsed = parse_target(type, value)
     if type == "url":
-        return {"type": "url", "value": value}
+        return {"type": "url", "value": canonical_url(value)}
+    if type == "service":
+        host = f"[{parsed}]" if kind == "ip" and parsed.version == 6 else str(parsed)
+        return {"type": "service", "value": f"{host}:{_service(value)[1]}"}
     return {"type": kind, "value": str(parsed)}
 
 

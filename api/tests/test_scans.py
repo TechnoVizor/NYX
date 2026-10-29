@@ -126,6 +126,21 @@ def test_assets_become_targets_one_level_deeper(world):
     assert ("domain", "nginx") not in t and len(t) == 4  # root + 3; unmapped kinds are ignored
 
 
+def test_open_ports_become_service_targets_and_data_kinds_do_not(world):
+    scan = new_scan(["t.sub"])
+    run = add_run(scan, "t.sub", [{"type": "domain", "value": "example.com"}])
+    world.lines = [
+        asset("port", "a.example.com:8443"),
+        asset("endpoint", "http://a.example.com/login"),
+        asset("certificate", "ab" * 32),
+        trailer(0),
+    ]
+    execute_run(run, world)
+    t = targets_of(scan)
+    assert t[("service", "a.example.com:8443")].in_scope is True
+    assert len(t) == 2  # root + the port; endpoints and certificates are data, not targets
+
+
 def test_harvest_skips_known_targets(world):
     scan = new_scan(["t.sub"])
     for _ in range(2):

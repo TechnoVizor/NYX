@@ -4,7 +4,7 @@ export type FindingStatus = "open" | "confirmed" | "false_positive" | "accepted_
 export const findingStatuses: FindingStatus[] = ["open", "confirmed", "false_positive", "accepted_risk", "fixed"];
 
 export type RiskLevel = "passive" | "safe_active" | "active" | "intrusive";
-export type TargetType = "domain" | "ip" | "cidr" | "url";
+export type TargetType = "domain" | "ip" | "cidr" | "url" | "service";
 export type Target = { type: TargetType; value: string };
 
 export type PluginSummary = {

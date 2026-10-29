@@ -12,7 +12,10 @@ import { useAsset, useAssets } from "@/lib/api/hooks";
 import type { Asset } from "@/lib/types";
 import { param, syncQuery, type SearchParams } from "@/lib/utils";
 
-const kindName: Record<string, string> = { http_service: "Web service", subdomain: "Subdomain", domain: "Domain", ip: "IP address" };
+const kindName: Record<string, string> = {
+  http_service: "Web service", subdomain: "Subdomain", domain: "Domain", ip: "IP address",
+  port: "Port", certificate: "Certificate", endpoint: "Endpoint",
+};
 const kindLabel = (k: string) => kindName[k] ?? k;
 const list = "rounded-lg border border-border text-sm";
 const item = "flex items-center gap-3 border-b border-border px-3 py-2 last:border-0";
@@ -20,7 +23,9 @@ const item = "flex items-center gap-3 border-b border-border px-3 py-2 last:bord
 /** The attributes worth a glance in the table; the panel shows everything. */
 function summary({ data: d }: Asset) {
   const tech = Array.isArray(d.tech) ? d.tech.slice(0, 3).join(", ") : "";
-  return [d.status_code, d.title, tech, d.ip].filter((v) => v != null && v !== "").map(String).join(" · ");
+  const expires = typeof d.not_after === "string" ? `expires ${d.not_after.slice(0, 10)}` : "";
+  return [d.status_code, d.title, tech, d.ip, d.subject_cn, d.issuer, expires, d.source]
+    .filter((v) => v != null && v !== "").map(String).join(" · ");
 }
 
 export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {

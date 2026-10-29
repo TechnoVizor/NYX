@@ -23,10 +23,10 @@ from app.config import settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
-# TRUNCATE users ... CASCADE empties scan_profiles too (created_by), so clean() re-seeds the built-ins from 0006.
-_spec = importlib.util.spec_from_file_location("m0006", "alembic/versions/0006_findings.py")
-_m0006 = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_m0006)
+# TRUNCATE users ... CASCADE empties scan_profiles too (created_by), so clean() re-seeds the built-ins as of 0007.
+_spec = importlib.util.spec_from_file_location("m0007", "alembic/versions/0007_profiles_4b.py")
+_m0007 = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_m0007)
 
 TABLES = (
     "users, sessions, scope_targets, plugins, plugin_versions, plugin_installations, "
@@ -43,7 +43,7 @@ def migrated():
 def clean(monkeypatch):
     with engine.begin() as c:
         c.execute(text(f"truncate {TABLES} cascade"))
-        for name, description, ids, cfg in _m0006.BUILTIN:
+        for name, (description, ids, cfg) in _m0007.PROFILES.items():
             c.execute(
                 text(
                     "insert into scan_profiles (name, description, builtin, plugin_ids, plugin_config, max_depth) "

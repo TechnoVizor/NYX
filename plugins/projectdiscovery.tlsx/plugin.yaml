@@ -1,0 +1,34 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.tlsx
+  name: tlsx
+  publisher: ProjectDiscovery
+  version: 1.4.0
+  license: MIT
+  description: "Reads the TLS certificate a host serves on 443: names, issuer, validity. Names in the certificate become new hosts to check against scope."
+runtime:
+  type: oci
+  image: nyx-plugin/tlsx:1.4.0
+classification:
+  categories: [discovery, tls]
+  risk_level: safe_active
+  trust_level: verified
+io:
+  accepts: [domain, ip]
+  produces: [asset, relation, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 256
+  timeout_seconds: 600
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 25
+config_schema:
+  type: object
+  properties: {}

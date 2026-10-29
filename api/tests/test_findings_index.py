@@ -131,3 +131,17 @@ def test_detail_returns_the_raw_event(client, world):
     [f] = all_(Finding)
     raw = client.get(f"/api/v1/findings/{f.id}").json()["raw"]
     assert raw["data"]["curl"] == "curl http://a.example.com"
+
+
+def test_a_default_port_does_not_make_a_second_asset_or_finding(world):
+    batch(
+        world,
+        [
+            asset("http_service", "https://a.example.com"),
+            asset("http_service", "https://a.example.com:443"),
+            finding(matched_at="https://a.example.com/.env", template_id="env"),
+            finding(matched_at="https://a.example.com:443/.env", template_id="env"),
+        ],
+    )
+    assert [a.value for a in all_(Asset)] == ["https://a.example.com"]
+    assert [f.matched_at for f in all_(Finding)] == ["https://a.example.com/.env"]

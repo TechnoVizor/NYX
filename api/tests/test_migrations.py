@@ -60,6 +60,7 @@ def test_0006_seeds_builtin_profiles_and_round_trips():
     from app.db import engine
 
     cfg = Config("alembic.ini")
+    command.downgrade(cfg, "0006")
     with engine.begin() as c:
         rows = c.execute(
             text("select name, builtin, plugin_ids, plugin_config, max_depth from scan_profiles order by name")
@@ -77,5 +78,32 @@ def test_0006_seeds_builtin_profiles_and_round_trips():
     try:
         with engine.begin() as c:
             assert c.scalar(text("select to_regclass('findings')")) is None
+    finally:
+        command.upgrade(cfg, "head")
+
+
+def test_0007_adds_the_4b_plugins_to_builtin_profiles_and_round_trips():
+    from sqlalchemy import text
+
+    from app.db import engine
+
+    def profiles():
+        with engine.begin() as c:
+            rows = c.execute(text("select name, plugin_ids, plugin_config from scan_profiles order by name")).all()
+        return {r.name: (r.plugin_ids, r.plugin_config) for r in rows}
+
+    balanced, quick = profiles()["Balanced"], profiles()["Quick"]
+    assert {"projectdiscovery.naabu", "projectdiscovery.tlsx", "projectdiscovery.katana", "lc.gau"} <= set(balanced[0])
+    assert quick[0] == [
+        "projectdiscovery.subfinder",
+        "projectdiscovery.httpx",
+        "projectdiscovery.katana",
+        "projectdiscovery.nuclei",
+    ]
+    assert quick[1]["projectdiscovery.katana"] == {"depth": 1}
+    cfg = Config("alembic.ini")
+    command.downgrade(cfg, "0006")
+    try:
+        assert "projectdiscovery.naabu" not in profiles()["Balanced"][0]
     finally:
         command.upgrade(cfg, "head")

@@ -43,11 +43,11 @@ def container_config(
 
 
 def egress_allow(targets: list[dict]) -> list[str]:
-    """What the firewall lets the plugin reach: hosts for URLs, values as they are for the rest."""
+    """What the firewall lets the plugin reach: hosts for URLs and services, values as they are for the rest."""
     out: list[str] = []
     for t in targets:
         value = t.get("value")
-        if t.get("type") == "url" and value:
+        if t.get("type") in ("url", "service") and value:
             # Same rule as the API's scope check: a URL typed without a scheme still has a host.
             value = urlsplit(value if "://" in value else f"//{value}").hostname
         if value and value not in out:

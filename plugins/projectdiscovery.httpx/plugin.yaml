@@ -15,7 +15,7 @@ classification:
   risk_level: safe_active
   trust_level: verified
 io:
-  accepts: [domain, url]
+  accepts: [domain, url, service]
   produces: [asset, log, progress]
 resources:
   cpu: 1.0

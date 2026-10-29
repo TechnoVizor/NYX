@@ -1,0 +1,38 @@
+api_version: platform.security/v1
+kind: ScannerPlugin
+metadata:
+  id: projectdiscovery.naabu
+  name: Naabu
+  publisher: ProjectDiscovery
+  version: 2.6.1
+  license: MIT
+  description: "Finds open TCP ports with a plain connect scan, the most common ports only. CDN addresses get 80 and 443 only."
+runtime:
+  type: oci
+  image: nyx-plugin/naabu:2.6.1
+classification:
+  categories: [discovery, network]
+  risk_level: safe_active
+  trust_level: verified
+io:
+  accepts: [domain, ip]
+  produces: [asset, log, progress]
+resources:
+  cpu: 1.0
+  memory_mb: 256
+  timeout_seconds: 900
+permissions:
+  network: target_scope
+  filesystem: temporary
+  raw_socket: false
+  host_mounts: false
+  docker_socket: false
+limits:
+  default_rate_limit: 300
+config_schema:
+  type: object
+  additionalProperties: false
+  properties:
+    top_ports:
+      enum: ["100", "1000"]
+      default: "100"
