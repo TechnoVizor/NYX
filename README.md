@@ -90,7 +90,7 @@ Open <http://localhost:3001>. The **first account you create becomes the admin**
 
 Keep your local sign-in in `.env` at the repo root (`NYX_ADMIN_EMAIL`, `NYX_ADMIN_PASSWORD`). The file is gitignored: credentials never go into this repository.
 
-Before I run anything, add a target under **Settings → Scope** and say who allowed it. I refuse everything else. Then start a scan at **Scans → New scan**. For a safe playground, `docker compose --profile lab up -d --build testbed` starts a local nginx at `testbed.nyx-lab.test` with a fake exposed `.git/config`, `.env`, a directory listing, a self-signed certificate and a few pages to crawl: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with the Balanced profile.
+Sign in and I walk you through it on the real screens: **Targets** first (what I may scan, and who allowed it; I refuse everything else), then a scan from **Home**, then what I found. Skip the tour any time; the **?** in the top bar brings it back. For a safe playground, `docker compose --profile lab up -d --build testbed` starts a local nginx at `testbed.nyx-lab.test` with a fake exposed `.git/config`, `.env`, a directory listing, a self-signed certificate and a few pages to crawl: add `nyx-lab.test` to scope with active scanning allowed and scan `testbed.nyx-lab.test` with the Balanced profile.
 
 Everything listens on `127.0.0.1` only, on purpose.
 
@@ -135,7 +135,7 @@ Copy `plugins/_template`, describe the tool in `plugin.yaml` (what it accepts, w
 | Path | What lives there |
 |---|---|
 | `api/` | FastAPI service and the scan worker: accounts, scope, plugin registry, scans on Temporal. Migrations in `api/alembic`. |
-| `web/` | The workspace UI: sign-in, scans, findings with review, assets, dashboard, scan profiles, plugins, scope. Graph, evidence, reports and experiments arrive with their phases. |
+| `web/` | The workspace UI: Home with the next step, Targets, Scans, Findings with review, Assets, scan profiles, plugins, and the guided tour; works on phones. Graph, evidence, reports and experiments arrive with their phases. `pnpm test` runs the unit tests. |
 | `docs/` | Design specs and implementation plans. |
 | `plugins/` | The plugin contract (JSON Schemas), the one-file SDK, a template, and my eight scanners. |
 | `runner/` | The only service with Docker access: starts each plugin in a locked-down container. |
