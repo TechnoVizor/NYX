@@ -8,6 +8,7 @@ const facts = (f: Partial<Facts> = {}): Facts => ({ role: "admin", scopeCount: 0
 const scan = (status: Facts["scans"][number]["status"]) => ({ id: "s1", status, error: status === "FAILED" ? "Runner down." : null });
 const fresh: TourState = restart();
 const afterWelcome = ack(fresh, "welcome");
+const atFindings = ack(ack(afterWelcome, "target"), "scan");
 const view = (s: TourState, f: Facts) => {
   const v = currentStep(s, f);
   return v && `${v.step}/${v.variant}`;
@@ -18,24 +19,40 @@ test("after welcome, an empty workspace asks for a target", () => assert.equal(v
 test("an analyst with no targets waits for an admin", () =>
   assert.equal(view(afterWelcome, facts({ role: "analyst" })), "target/waiting-admin"));
 test("a running scan keeps the tour on the scan step", () =>
-  assert.equal(view(afterWelcome, facts({ scopeCount: 1, scans: [scan("RUNNING")] })), "scan/scan-running"));
+  assert.equal(view(ack(afterWelcome, "target"), facts({ scopeCount: 1, scans: [scan("RUNNING")] })), "scan/scan-running"));
 test("a failed first scan stays on the scan step", () =>
-  assert.equal(view(afterWelcome, facts({ scopeCount: 1, scans: [scan("FAILED")] })), "scan/scan-failed"));
+  assert.equal(view(ack(afterWelcome, "target"), facts({ scopeCount: 1, scans: [scan("FAILED")] })), "scan/scan-failed"));
 test("a finished scan with findings moves to findings", () =>
-  assert.equal(view(afterWelcome, facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3 })), "findings/default"));
+  assert.equal(view(atFindings, facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3 })), "findings/default"));
 test("after findings, the tour asks for a review", () =>
-  assert.equal(view(ack(afterWelcome, "findings"), facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3 })), "review/default"));
-test("a saved review ends the tour", () =>
-  assert.equal(view(ack(afterWelcome, "findings"), facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3, reviewedTotal: 1 })), null));
+  assert.equal(view(ack(atFindings, "findings"), facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3 })), "review/default"));
+test("a saved review waits for Next, then ends the tour", () => {
+  const f = facts({ scopeCount: 1, scans: [scan("COMPLETED")], findingsTotal: 3, reviewedTotal: 1 });
+  const s = ["target", "scan", "findings"].reduce((st, x) => ack(st, x as never), afterWelcome);
+  assert.equal(view(s, f), "review/done");
+  assert.equal(view(ack(s, "review"), f), null);
+});
 test("a clean first scan ends on good news", () => {
   const f = facts({ scopeCount: 1, scans: [scan("COMPLETED")] });
-  assert.equal(view(afterWelcome, f), "findings/no-findings");
-  assert.equal(view(ack(afterWelcome, "findings"), f), null);
+  assert.equal(view(atFindings, f), "findings/no-findings");
+  assert.equal(view(ack(atFindings, "findings"), f), null);
 });
 test("viewers never get the tour", () => assert.equal(view(fresh, facts({ role: "viewer" })), null));
 test("a skipped tour stays hidden", () => assert.equal(view(skip(fresh), facts()), null));
-test("a workspace that is already done ends right after welcome", () =>
-  assert.equal(view(afterWelcome, facts({ scopeCount: 2, scans: [scan("COMPLETED")], findingsTotal: 5, reviewedTotal: 2 })), null));
+test("a workspace that is already done still walks every step, one Next at a time", () => {
+  const f = facts({ scopeCount: 2, scans: [scan("COMPLETED")], findingsTotal: 5, reviewedTotal: 2 });
+  const seen: (string | null)[] = [];
+  let s = afterWelcome;
+  for (let i = 0; i < 5; i++) {
+    const v = currentStep(s, f);
+    seen.push(v && `${v.step}/${v.variant}`);
+    if (!v) break;
+    s = ack(s, v.step);
+  }
+  assert.deepEqual(seen, ["target/done", "scan/done", "findings/default", "review/done", null]);
+});
+test("a target added during the tour waits for Next", () =>
+  assert.equal(view(afterWelcome, facts({ scopeCount: 1 })), "target/done"));
 test("step index counts from 1 to 5", () => assert.equal(currentStep(afterWelcome, facts())?.index, 2));
 
 test("storage that throws gives a first visit and never breaks", () => {

@@ -36,6 +36,14 @@ export function copyFor(view: NonNullable<TourView>, f: Facts, pathname: string)
         body: `I scan only what is on this list. Add your domain. ${LAB}`,
         ...on(pathname, (p) => p === "/app/targets", "target-form", "nav-targets", "Targets"),
       };
+    case "target/done":
+      return {
+        name: "Targets",
+        title: "Your targets",
+        body: "I scan only what is on this list. Add more any time.",
+        primary: { label: "Next", ack: true },
+        target: pathname === "/app/targets" ? "target-form" : "nav-targets",
+      };
     case "target/waiting-admin":
       return {
         name: "Targets",
@@ -48,6 +56,14 @@ export function copyFor(view: NonNullable<TourView>, f: Facts, pathname: string)
         title: "Now let me look",
         body: "Type your target, press Start scan.",
         ...on(pathname, home, "quick-scan", "nav-home", "Home"),
+      };
+    case "scan/done":
+      return {
+        name: "Scan",
+        title: "Every scan lives here",
+        body: "Each run, its tools and how it ended. Start a new one from Home.",
+        primary: { label: "Next", ack: true },
+        target: "nav-scans",
       };
     case "scan/scan-running":
       return {
@@ -78,6 +94,18 @@ export function copyFor(view: NonNullable<TourView>, f: Facts, pathname: string)
         body: "One row per issue, across all scans. Open one for its evidence.",
         primary: { label: "Got it", ack: true },
         ...on(pathname, (p) => p === "/app/findings", "finding-row", "nav-findings", "Findings"),
+      };
+    case "review/done":
+      return {
+        name: "Review",
+        title: "Reviews stick",
+        body: "Confirmed, false positive, accepted risk or fixed: kept across rescans.",
+        primary: { label: "Finish", ack: true },
+        ...(pathname.startsWith("/app/findings/")
+          ? { target: "review" }
+          : pathname === "/app/findings"
+            ? { target: "finding-row" }
+            : { target: "nav-findings" }),
       };
     default:
       return {
