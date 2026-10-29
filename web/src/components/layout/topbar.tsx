@@ -8,28 +8,33 @@ import { api, ApiError } from "@/lib/api/client";
 import { useMe } from "@/lib/api/hooks";
 import { useUiStore } from "@/stores/ui-store";
 
-export function Topbar() {
-  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen);
-  const { data: me, error } = useMe();
+export function useSignOut() {
   const router = useRouter();
   const qc = useQueryClient();
-  const [signOutErr, setSignOutErr] = useState("");
-
-  useEffect(() => {
-    if (error instanceof ApiError && error.status === 401) router.replace("/login");
-  }, [error, router]);
-
+  const [error, setError] = useState("");
   const signOut = async () => {
     // Leaving the page while the server still holds the session would only look like signing out.
     try {
       await api.logout();
     } catch (x) {
-      setSignOutErr(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
+      setError(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
       return;
     }
     qc.clear();
     router.replace("/login");
   };
+  return { signOut, error };
+}
+
+export function Topbar() {
+  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen);
+  const { data: me, error } = useMe();
+  const router = useRouter();
+  const { signOut, error: signOutErr } = useSignOut();
+
+  useEffect(() => {
+    if (error instanceof ApiError && error.status === 401) router.replace("/login");
+  }, [error, router]);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
@@ -44,7 +49,7 @@ export function Topbar() {
       </button>
       <div className="ml-auto flex items-center gap-3 text-xs text-subtle">
         {signOutErr ? <span role="alert" className="text-sev-critical">{signOutErr}</span> : me && <span className="hidden sm:inline">{me.email} · {me.role}</span>}
-        <button type="button" onClick={signOut} className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 transition-colors hover:border-border-strong hover:text-muted-foreground">
+        <button type="button" onClick={signOut} className="hidden h-8 items-center md:flex gap-1.5 rounded-lg border border-border px-2.5 transition-colors hover:border-border-strong hover:text-muted-foreground">
           <LogOut className="size-3.5" />Sign out
         </button>
       </div>
