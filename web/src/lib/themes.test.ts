@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { THEMES, deriveTokens, hueOf, themeById, themeCss } from "./themes.ts";
 
 const SURFACES = ["background", "surface-1", "surface-2", "surface-3"] as const;
-const TEXT = ["foreground", "muted-foreground", "subtle", "brand", "sev-critical", "sev-high", "sev-medium", "sev-low", "sev-info"] as const;
+const TEXT = ["foreground", "muted-foreground", "subtle", "brand", "sev-critical", "sev-high", "sev-medium", "sev-low", "sev-info", "purple"] as const;
 const ratio = (a: string, b: string) => contrast(a, b).toFixed(2);
 
 test("nine themes in spec order", () =>
@@ -22,6 +22,7 @@ for (const theme of THEMES) {
   test(`${theme.id}: severity text on its own pill`, () => {
     for (const s of ["critical", "high", "medium", "low", "info"] as const)
       assert.ok(contrast(k[`sev-${s}`], k[`sev-${s}-soft`]) >= 4.5, `sev-${s}: ${ratio(k[`sev-${s}`], k[`sev-${s}-soft`])}`);
+    assert.ok(contrast(k.purple, k["purple-soft"]) >= 4.5, `purple: ${ratio(k.purple, k["purple-soft"])}`);
   });
   test(`${theme.id}: filled controls and status bar`, () => {
     const pairs = [["primary-foreground", "primary"], ["on-bar", "bar"], ["on-bar-alert", "bar-alert"], ["sidebar-primary-foreground", "sidebar-primary"]] as const;
@@ -40,7 +41,10 @@ test("nyx keeps today's palette", () => {
   assert.equal(k["sev-critical"], "#ff5d62");
 });
 
-test("hueOf is stable", () => assert.equal(hueOf("projectdiscovery.nuclei"), hueOf("projectdiscovery.nuclei")));
+test("hueOf is stable and never red (red means danger)", () => {
+  assert.equal(hueOf("projectdiscovery.nuclei"), hueOf("projectdiscovery.nuclei"));
+  for (const n of ["a", "b", "nuclei", "httpx", "subfinder", "katana", "gau", "tlsx", "naabu"]) assert.notEqual(hueOf(n), "red");
+});
 
 test("mix", () => {
   assert.equal(mix("#000000", "#ffffff", 0.5), "#808080");

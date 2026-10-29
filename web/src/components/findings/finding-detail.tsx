@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { FindingStatusText, statusLabel } from "@/components/findings/finding-status";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { api, ApiError } from "@/lib/api/client";
-import { useFinding, useMe, usePluginName } from "@/lib/api/hooks";
+import { PluginTile } from "@/components/shared/plugin-tile";
+import { useFinding, useMe } from "@/lib/api/hooks";
 import { findingStatuses, type FindingStatus } from "@/lib/types";
 
 const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
@@ -32,7 +33,6 @@ export function FindingDetail({ id }: { id: string }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [rawOpen, setRawOpen] = useState(false);
-  const pluginName = usePluginName();
   const [revealed, setRevealed] = useState<string[] | null>(null);
   const [revealErr, setRevealErr] = useState("");
   if (error) return <p role="alert" className="text-sm text-sev-critical">{error.message}</p>;
@@ -68,7 +68,7 @@ export function FindingDetail({ id }: { id: string }) {
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <SeverityBadge severity={f.severity} /><FindingStatusText status={f.status} />
-          <span className="text-xs text-muted-foreground">{pluginName(f.plugin_id)}</span>
+          <PluginTile id={f.plugin_id} withName />
         </div>
         <h1 className="text-xl font-semibold tracking-tight">{f.title}</h1>
         <p className="break-all font-mono text-xs">{f.matched_at}</p>

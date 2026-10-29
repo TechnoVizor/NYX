@@ -1,13 +1,15 @@
-import { cn } from "@/lib/utils";
+import { findingStatusMeta, toneText } from "@/lib/status-meta";
 import type { FindingStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-export const statusLabel: Record<FindingStatus, string> = {
-  open: "Open", confirmed: "Confirmed", false_positive: "False positive", accepted_risk: "Accepted risk", fixed: "Fixed",
-};
-const tone: Record<FindingStatus, string> = {
-  open: "text-sev-high", confirmed: "text-sev-critical", false_positive: "text-subtle", accepted_risk: "text-muted-foreground", fixed: "text-sev-low",
-};
+export const statusLabel = Object.fromEntries(Object.entries(findingStatusMeta).map(([k, m]) => [k, m.label])) as Record<FindingStatus, string>;
 
 export function FindingStatusText({ status }: { status: FindingStatus }) {
-  return <span className={cn("text-xs", tone[status])}>{statusLabel[status]}</span>;
+  const { label, tone, icon: Icon } = findingStatusMeta[status];
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-xs", toneText[tone])}>
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      {label}
+    </span>
+  );
 }

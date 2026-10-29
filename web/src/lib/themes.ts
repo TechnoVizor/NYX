@@ -32,7 +32,7 @@ const TOKENS = [
   "chart-1", "chart-2", "chart-3", "chart-4", "chart-5",
   "sidebar", "sidebar-foreground", "sidebar-primary", "sidebar-primary-foreground",
   "sidebar-accent", "sidebar-accent-foreground", "sidebar-border", "sidebar-ring",
-  "bar", "on-bar", "bar-alert", "on-bar-alert",
+  "bar", "on-bar", "bar-alert", "on-bar-alert", "purple", "purple-soft",
 ] as const;
 export type TokenName = (typeof TOKENS)[number];
 
@@ -70,7 +70,7 @@ export const THEMES: Theme[] = [
       bg: "#ffffff", side: "#f6f8fa", panel: "#f6f8fa", fg: "#1f2328", muted: "#59636e", border: "#d0d7de",
       accent: "#0967d6" /* adapted: #0969da */, onAccent: "#ffffff", primary: "#0967d6", onPrimary: "#ffffff",
       bar: "#0967d6", onBar: "#ffffff", barAlert: "#cf222e", onBarAlert: "#ffffff",
-      red: "#cb212d" /* adapted: #cf222e */, orange: "#b44900" /* adapted: #bc4c00 */, yellow: "#916100" /* adapted: #9a6700 */, green: "#197b35" /* adapted: #1a7f37 */, blue: "#0967d6" /* adapted: #0969da */, purple: "#8250df",
+      red: "#cb212d" /* adapted: #cf222e */, orange: "#b44900" /* adapted: #bc4c00 */, yellow: "#916100" /* adapted: #9a6700 */, green: "#197b35" /* adapted: #1a7f37 */, blue: "#0967d6" /* adapted: #0969da */, purple: "#7d4dd6" /* adapted: #8250df */,
     },
   },
   {
@@ -81,7 +81,7 @@ export const THEMES: Theme[] = [
       bg: "#282c34", side: "#21252b", panel: "#2c313a", fg: "#abb2bf", muted: "#9da5b4", border: "#3e4452",
       accent: "#61afef", onAccent: "#21252b", primary: "#61afef", onPrimary: "#21252b",
       bar: "#61afef", onBar: "#21252b", barAlert: "#e06c75", onBarAlert: "#21252b",
-      red: "#e6888f" /* adapted: #e06c75 */, orange: "#d19a66", yellow: "#e5c07b", green: "#98c379", blue: "#61afef", purple: "#c678dd",
+      red: "#e6888f" /* adapted: #e06c75 */, orange: "#d19a66", yellow: "#e5c07b", green: "#98c379", blue: "#61afef", purple: "#cd8ae1" /* adapted: #c678dd */,
     },
     overrides: { input: mix("#3e4452", "#abb2bf", 0.5) }, // adapted: control boundary 3:1
   },
@@ -93,7 +93,7 @@ export const THEMES: Theme[] = [
       bg: "#272822", side: "#1e1f1c", panel: "#31322b", fg: "#f8f8f2", muted: "#aba68e" /* adapted: #a59f85 */, border: "#414339",
       accent: "#a6e22e", onAccent: "#272822", primary: "#a6e22e", onPrimary: "#272822",
       bar: "#a6e22e", onBar: "#272822", barAlert: "#fa4989" /* adapted: #f92672 */, onBarAlert: "#272822",
-      red: "#fb7ba9" /* adapted: #f92672 */, orange: "#fd971f", yellow: "#e6db74", green: "#a6e22e", blue: "#66d9ef", purple: "#ae81ff",
+      red: "#fb7ba9" /* adapted: #f92672 */, orange: "#fd971f", yellow: "#e6db74", green: "#a6e22e", blue: "#66d9ef", purple: "#b991ff" /* adapted: #ae81ff */,
     },
   },
   {
@@ -115,7 +115,7 @@ export const THEMES: Theme[] = [
       bg: "#2e3440", side: "#272c36", panel: "#3b4252", fg: "#eceff4", muted: "#b4bbc8" /* adapted: #a3abbb */, border: "#434c5e",
       accent: "#8dc3d2" /* adapted: #88c0d0 */, onAccent: "#2e3440", primary: "#8dc3d2", onPrimary: "#2e3440",
       bar: "#8dc3d2", onBar: "#2e3440", barAlert: "#a6545c" /* adapted: #bf616a */, onBarAlert: "#eceff4",
-      red: "#deaeb3" /* adapted: #bf616a */, orange: "#e0af9f" /* adapted: #d08770 */, yellow: "#ebcb8b", green: "#a9c293" /* adapted: #a3be8c */, blue: "#a7bdd4" /* adapted: #81a1c1 */, purple: "#b48ead",
+      red: "#deaeb3" /* adapted: #bf616a */, orange: "#e0af9f" /* adapted: #d08770 */, yellow: "#ebcb8b", green: "#a9c293" /* adapted: #a3be8c */, blue: "#a7bdd4" /* adapted: #81a1c1 */, purple: "#cdb3c8" /* adapted: #b48ead */,
     },
   },
   {
@@ -137,7 +137,7 @@ export const THEMES: Theme[] = [
       bg: "#eff1f5", side: "#e6e9ef", panel: "#e6e9ef", fg: "#4c4f69", muted: "#5c5f77", border: "#ccd0da",
       accent: "#8036e1" /* adapted: #8839ef */, onAccent: "#ffffff", primary: "#8036e1", onPrimary: "#ffffff",
       bar: "#8036e1", onBar: "#ffffff", barAlert: "#d20f39", onBarAlert: "#ffffff",
-      red: "#bf0e34" /* adapted: #d20f39 */, orange: "#a84207" /* adapted: #fe640b */, yellow: "#8a5812" /* adapted: #df8e1d */, green: "#2d701e" /* adapted: #40a02b */, blue: "#1a59d5" /* adapted: #1e66f5 */, purple: "#8839ef",
+      red: "#bf0e34" /* adapted: #d20f39 */, orange: "#a84207" /* adapted: #fe640b */, yellow: "#8a5812" /* adapted: #df8e1d */, green: "#2d701e" /* adapted: #40a02b */, blue: "#1a59d5" /* adapted: #1e66f5 */, purple: "#7d34dc" /* adapted: #8839ef */,
     },
     overrides: { input: mix("#ccd0da", "#4c4f69", 0.6) }, // adapted: control boundary 3:1
   },
@@ -166,13 +166,14 @@ export function deriveTokens({ input: i, overrides }: Theme): Record<TokenName, 
     sidebar: i.side, "sidebar-foreground": i.fg, "sidebar-primary": i.accent, "sidebar-primary-foreground": i.onAccent,
     "sidebar-accent": hover, "sidebar-accent-foreground": i.fg, "sidebar-border": i.border, "sidebar-ring": i.accent,
     bar: i.bar, "on-bar": i.onBar, "bar-alert": i.barAlert, "on-bar-alert": i.onBarAlert,
+    purple: i.purple, "purple-soft": mix(i.bg, i.purple, 0.12),
   };
   return { ...t, ...overrides };
 }
 
-/** Stable theme hue for a name, so a plugin keeps its colour across screens. */
-export function hueOf(name: string): Hue {
-  const hues: Hue[] = ["red", "orange", "yellow", "green", "blue", "purple"];
+/** Stable theme hue for a name, so a plugin keeps its colour across screens. Never red: red means danger. */
+export function hueOf(name: string): Exclude<Hue, "red"> {
+  const hues = ["orange", "yellow", "green", "blue", "purple"] as const;
   let h = 0;
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return hues[h % hues.length];

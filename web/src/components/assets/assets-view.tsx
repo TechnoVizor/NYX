@@ -13,7 +13,7 @@ import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
 import { useAsset, useAssets } from "@/lib/api/hooks";
 import type { Asset } from "@/lib/types";
-import { param, syncQuery, type SearchParams } from "@/lib/utils";
+import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
 const kindName: Record<string, string> = {
   http_service: "Web service", subdomain: "Subdomain", domain: "Domain", ip: "IP address",
@@ -22,9 +22,14 @@ const kindName: Record<string, string> = {
 const kindLabel = (k: string) => kindName[k] ?? k;
 const kindIcon: Record<string, typeof Globe> = { http_service: Globe, subdomain: Network, domain: Network, ip: Server, port: Plug, certificate: Lock, endpoint: Link2 };
 
+// A kind keeps one theme hue everywhere, so the list reads by colour before by word.
+const kindTone: Record<string, string> = {
+  domain: "text-sev-info", subdomain: "text-sev-info", ip: "text-purple", port: "text-sev-high", http_service: "text-sev-low", endpoint: "text-sev-low", certificate: "text-sev-medium",
+};
+
 function KindIcon({ kind }: { kind: string }) {
   const Icon = kindIcon[kind] ?? Boxes;
-  return <Icon className="size-4 shrink-0 text-muted-foreground" aria-label={kindLabel(kind)} />;
+  return <Icon className={cn("size-4 shrink-0", kindTone[kind] ?? "text-muted-foreground")} aria-label={kindLabel(kind)} />;
 }
 
 function HttpCode({ code }: { code: unknown }) {

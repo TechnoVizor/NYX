@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FindingStatusText, statusLabel } from "@/components/findings/finding-status";
 import { SeverityBadge } from "@/components/findings/severity-badge";
-import { useFindings, usePluginName, usePlugins } from "@/lib/api/hooks";
+import { PluginTile } from "@/components/shared/plugin-tile";
+import { useFindings, usePlugins } from "@/lib/api/hooks";
 import { findingStatuses, severities, type FindingStatus, type Severity } from "@/lib/types";
 import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
@@ -41,7 +42,6 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
   });
   const rows = data?.pages.flatMap((p) => p.items) ?? [];
   const onePlugin = new Set(rows.map((r) => r.plugin_id)).size <= 1; // a column with one value says nothing
-  const pluginName = usePluginName();
   const toggle = (s: Severity) => setSev(sev.includes(s) ? sev.filter((x) => x !== s) : [...sev, s]);
 
   return (
@@ -95,7 +95,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>
                   </td>
                   <td className="max-w-80 truncate px-4 py-3 font-mono text-xs" title={f.matched_at}>{f.matched_at}</td>
-                  {!onePlugin && <td className="px-4 py-3 text-xs text-muted-foreground">{pluginName(f.plugin_id)}</td>}
+                  {!onePlugin && <td className="px-4 py-3"><PluginTile id={f.plugin_id} withName /></td>}
                   <td className="px-4 py-3"><FindingStatusText status={f.status} /></td>
                   <td className="px-4 py-3 text-xs text-muted-foreground"><Time iso={f.last_seen} /></td>
                 </tr>

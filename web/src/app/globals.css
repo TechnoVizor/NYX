@@ -52,6 +52,8 @@
   --color-on-bar: var(--on-bar);
   --color-bar-alert: var(--bar-alert);
   --color-on-bar-alert: var(--on-bar-alert);
+  --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

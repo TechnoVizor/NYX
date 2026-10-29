@@ -1,17 +1,15 @@
-import { cn } from "@/lib/utils";
+import { scanStatusMeta, toneText } from "@/lib/status-meta";
 import type { RunStatus, ScanStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-const tone: Record<string, string> = {
-  COMPLETED: "text-sev-low", SUCCEEDED: "text-sev-low",
-  RUNNING: "text-sev-medium", PENDING: "text-sev-medium", CREATED: "text-sev-medium", PAUSED: "text-subtle",
-  PARTIAL: "text-sev-high",
-  FAILED: "text-sev-critical", TIMED_OUT: "text-sev-critical", CANCELLED: "text-subtle",
-};
-export const statusName: Record<ScanStatus | RunStatus, string> = {
-  CREATED: "Queued", PENDING: "Queued", RUNNING: "Running", PAUSED: "Paused", COMPLETED: "Completed", SUCCEEDED: "Succeeded",
-  PARTIAL: "Partial", FAILED: "Failed", TIMED_OUT: "Timed out", CANCELLED: "Cancelled",
-};
+export const statusName = Object.fromEntries(Object.entries(scanStatusMeta).map(([k, m]) => [k, m.label])) as Record<ScanStatus | RunStatus, string>;
 
 export function StatusText({ status }: { status: ScanStatus | RunStatus }) {
-  return <span className={cn("text-xs", tone[status])}>{statusName[status]}</span>;
+  const { label, tone, icon: Icon, spin } = scanStatusMeta[status];
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-xs", toneText[tone])}>
+      <Icon className={cn("size-3.5 shrink-0", spin && "animate-spin motion-reduce:animate-none")} aria-hidden />
+      {label}
+    </span>
+  );
 }

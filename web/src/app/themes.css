@@ -55,6 +55,8 @@
   --on-bar: #08080a;
   --bar-alert: #ff5d62;
   --on-bar-alert: #08080a;
+  --purple: #b392ff;
+  --purple-soft: #1a1624;
 }
 
 [data-theme="github-dark"] {
@@ -111,6 +113,8 @@
   --on-bar: #ffffff;
   --bar-alert: #da3633;
   --on-bar-alert: #ffffff;
+  --purple: #ab7df8;
+  --purple-soft: #201e32;
 }
 
 [data-theme="github-light"] {
@@ -167,6 +171,8 @@
   --on-bar: #ffffff;
   --bar-alert: #cf222e;
   --on-bar-alert: #ffffff;
+  --purple: #7d4dd6;
+  --purple-soft: #efeafa;
 }
 
 [data-theme="one-dark"] {
@@ -223,6 +229,8 @@
   --on-bar: #21252b;
   --bar-alert: #e06c75;
   --on-bar-alert: #21252b;
+  --purple: #cd8ae1;
+  --purple-soft: #3c3749;
 }
 
 [data-theme="monokai"] {
@@ -279,6 +287,8 @@
   --on-bar: #272822;
   --bar-alert: #fa4989;
   --on-bar-alert: #272822;
+  --purple: #b991ff;
+  --purple-soft: #39353d;
 }
 
 [data-theme="dracula"] {
@@ -335,6 +345,8 @@
   --on-bar: #21222c;
   --bar-alert: #ff5555;
   --on-bar-alert: #21222c;
+  --purple: #bd93f9;
+  --purple-soft: #3a374d;
 }
 
 [data-theme="nord"] {
@@ -391,6 +403,8 @@
   --on-bar: #2e3440;
   --bar-alert: #a6545c;
   --on-bar-alert: #eceff4;
+  --purple: #cdb3c8;
+  --purple-soft: #414350;
 }
 
 [data-theme="catppuccin-mocha"] {
@@ -447,6 +461,8 @@
   --on-bar: #1e1e2e;
   --bar-alert: #f38ba8;
   --on-bar-alert: #1e1e2e;
+  --purple: #cba6f7;
+  --purple-soft: #332e46;
 }
 
 [data-theme="catppuccin-latte"] {
@@ -503,4 +519,6 @@
   --on-bar: #ffffff;
   --bar-alert: #d20f39;
   --on-bar-alert: #ffffff;
+  --purple: #7d34dc;
+  --purple-soft: #e1daf2;
 }
