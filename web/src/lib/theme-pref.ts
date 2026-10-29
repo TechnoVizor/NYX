@@ -1,6 +1,6 @@
 // Which theme the user wants, per browser. Storage can be missing or throw; junk falls back to the defaults.
 
-import { themeById, type ThemeId } from "./themes.ts";
+import { deriveTokens, THEMES, themeById, type ThemeId } from "./themes.ts";
 
 export type Mode = "light" | "dark" | "system";
 export type ThemePref = { mode: Mode; dark: ThemeId; light: ThemeId };
@@ -42,4 +42,14 @@ export function savePref(p: ThemePref): void {
   } catch {
     // the choice then lasts for this page only
   }
+}
+
+/**
+ * Runs in <head> before first paint (no React, no imports): the same fallback rules as parsePref + resolveTheme,
+ * then the same attributes applyTheme sets. Kept in step with them by theme-pref.test.ts.
+ */
+export function bootScript(): string {
+  const kinds = Object.fromEntries(THEMES.map((t) => [t.id, t.kind]));
+  const side = Object.fromEntries(THEMES.map((t) => [t.id, deriveTokens(t).sidebar]));
+  return `(function(){var d=${JSON.stringify(DEFAULT_PREF)},k=${JSON.stringify(kinds)},s=${JSON.stringify(side)},p=d;try{var v=JSON.parse(localStorage.getItem(${JSON.stringify(PREF_KEY)})||"");if(v&&["light","dark","system"].indexOf(v.mode)>=0)p={mode:v.mode,dark:k[v.dark]==="dark"?v.dark:d.dark,light:k[v.light]==="light"?v.light:d.light}}catch(e){}var id;try{id=(p.mode==="system"?matchMedia("(prefers-color-scheme: dark)").matches:p.mode==="dark")?p.dark:p.light}catch(e){id=p.dark}var h=document.documentElement;h.setAttribute("data-theme",id);h.classList.toggle("dark",k[id]==="dark");h.style.colorScheme=k[id];var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",s[id])})()`;
 }

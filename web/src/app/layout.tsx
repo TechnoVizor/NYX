@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter_Tight } from "next/font/google";
 import { Providers } from "@/providers/providers";
+import { bootScript } from "@/lib/theme-pref";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -14,11 +15,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: "#050506", colorScheme: "dark" };
+export const viewport: Viewport = { themeColor: "#0a0a0c" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${display.variable} dark h-full`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${display.variable} dark h-full`} data-theme="nyx" suppressHydrationWarning>
+      <head>
+        {/* Applies the saved theme before first paint; see bootScript(). */}
+        <script dangerouslySetInnerHTML={{ __html: bootScript() }} />
+      </head>
       <body className="min-h-full">
         <Providers>{children}</Providers>
       </body>

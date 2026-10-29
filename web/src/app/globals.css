@@ -259,3 +259,10 @@
     transform: perspective(600px) rotateY(360deg);
   }
 }
+
+/* Theme switch: a short crossfade (applyTheme skips it under reduced motion). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
