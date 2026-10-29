@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { ScopeManager } from "@/components/scope/scope-manager";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Settings: Scope" };
-
+// Scope moved to Targets; old links keep working.
 export default function Page() {
-  return <ScopeManager />;
+  redirect("/app/targets");
 }

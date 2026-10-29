@@ -106,7 +106,7 @@ export function QuickScan() {
       {outside && me.role !== "admin" && (
         <p className="mt-3 text-sm">
           <span className="font-mono">{outside.value}</span> is not in scope. An admin adds targets under{" "}
-          <Link href="/app/settings/policies" className="underline">Settings → Scope</Link>.
+          <Link href="/app/targets" className="underline">Targets</Link>.
         </p>
       )}
       {err && <p role="alert" className="mt-3 text-sm text-sev-critical">{err}</p>}

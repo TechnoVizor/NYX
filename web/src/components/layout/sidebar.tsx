@@ -38,18 +38,18 @@ export function Sidebar() {
       <nav className="flex-1 space-y-5 overflow-y-auto px-2.5 py-3" aria-label="Primary">
         {navGroups.map((group) => (
           <div key={group.label}>
-            {!collapsed && (
+            {!collapsed && group.label !== "Path" && (
               <p className="mb-1.5 px-2 text-xs font-medium uppercase tracking-wider text-subtle">{group.label}</p>
             )}
             <ul className="space-y-0.5">
-              {group.items.map(({ label, href, icon: Icon }) => {
-                const base = href.startsWith("/app/settings") ? "/app/settings" : href;
-                const active = pathname === base || pathname.startsWith(`${base}/`);
+              {group.items.map(({ label, href, icon: Icon, tour, step }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
                 const link = (
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
                     aria-label={collapsed ? label : undefined}
+                    data-tour={tour}
                     className={cn(
                       "flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors",
                       collapsed && "justify-center",
@@ -58,6 +58,7 @@ export function Sidebar() {
                         : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
                     )}
                   >
+                    {!collapsed && <span className="w-2.5 shrink-0 font-mono text-xs text-subtle" aria-hidden>{step}</span>}
                     <Icon className={cn("size-4 shrink-0", active && "text-brand")} />
                     {!collapsed && <span className="truncate">{label}</span>}
                   </Link>

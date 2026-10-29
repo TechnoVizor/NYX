@@ -37,7 +37,6 @@ export function ScopeManager() {
 
   return (
     <div className="max-w-3xl space-y-8">
-      <p className="text-sm text-muted-foreground">I only touch what is listed here. A domain covers itself and its subdomains. Active plugins need active scanning allowed on the entry.</p>
       {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : !scope?.length ? (
         <p className="text-sm text-muted-foreground">Nothing in scope yet, so I will refuse every run.</p>
       ) : (
