@@ -53,7 +53,7 @@ function Sparkline({ points }: { points: Dashboard["findings_per_day"] }) {
         {/* Hover targets wider than the line: one column per day. */}
         {points.map((p, i) => <rect key={p.date} x={xy[i][0] - step / 2} y={0} width={step} height={h} fill="transparent"><title>{`${p.date}: ${p.count}`}</title></rect>)}
       </svg>
-      <p className="mt-2 flex justify-between text-[11px] text-subtle"><span>{points[0]?.date}</span><span>{total} new in 30 days</span><span>{points.at(-1)?.date}</span></p>
+      <p className="mt-2 flex justify-between text-xs text-subtle"><span>{points[0]?.date}</span><span>{total} new in 30 days</span><span>{points.at(-1)?.date}</span></p>
     </div>
   );
 }

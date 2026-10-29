@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
 import { cn } from "@/lib/utils";
 
-const mono = "font-mono text-[10.5px] uppercase tracking-[0.14em]";
+const mono = "font-mono text-xs uppercase tracking-[0.14em]";
 
 /** Owns the Log in / Sign up state so the campaign poster can swap with the form. */
 export function LoginView() {

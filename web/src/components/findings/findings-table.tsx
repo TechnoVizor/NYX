@@ -85,7 +85,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
                   <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
                   <td className="px-4 py-3">
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>
-                    <p className="font-mono text-[11px] text-subtle">{f.template_id}</p>
+                    <p className="font-mono text-xs text-subtle">{f.template_id}</p>
                   </td>
                   <td className="max-w-80 truncate px-4 py-3 font-mono text-xs" title={f.matched_at}>{f.matched_at}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{f.plugin_id}</td>

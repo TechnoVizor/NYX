@@ -39,7 +39,7 @@ export function Sidebar() {
         {navGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <p className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-subtle">{group.label}</p>
+              <p className="mb-1.5 px-2 text-xs font-medium uppercase tracking-wider text-subtle">{group.label}</p>
             )}
             <ul className="space-y-0.5">
               {group.items.map(({ label, href, icon: Icon }) => {

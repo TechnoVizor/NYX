@@ -9,5 +9,5 @@ const tone: Record<RiskLevel, string> = {
 };
 
 export function RiskBadge({ risk }: { risk: RiskLevel }) {
-  return <span className={cn("rounded border px-1.5 py-0.5 font-mono text-[10.5px] uppercase tracking-wider", tone[risk])}>{risk.replace("_", " ")}</span>;
+  return <span className={cn("rounded border px-1.5 py-0.5 font-mono text-xs uppercase tracking-wider", tone[risk])}>{risk.replace("_", " ")}</span>;
 }
