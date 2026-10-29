@@ -152,3 +152,36 @@ def manifest(risk, network):
 )
 def test_network_mode_rules(risk, network, ok):
     assert (validate_manifest(manifest(risk, network)) == []) is ok
+
+
+def _finding(**data):
+    return {
+        "event_version": "1",
+        "type": "finding",
+        "plugin_run_id": "r1",
+        "plugin_id": "p",
+        "plugin_version": "1",
+        "timestamp": "2026-10-11T12:00:00Z",
+        "target": {"type": "url", "value": "http://a.example.com"},
+        "data": {"title": "Exposed .git", "severity": "medium", **data},
+    }
+
+
+def test_finding_with_optional_fields_is_valid():
+    e = _finding(
+        template_id="git-config",
+        matched_at="http://a.example.com/.git/config",
+        references=["https://x"],
+        cve=["CVE-2024-1"],
+        cwe=["CWE-200"],
+        extracted=["[core]"],
+        curl="curl ...",
+        matcher="word",
+        description="d",
+    )
+    assert validate_event(e) == []
+
+
+@pytest.mark.parametrize("data", [{"severity": "urgent"}, {"references": "https://x"}, {"cve": [1]}])
+def test_finding_rejects_bad_fields(data):
+    assert validate_event(_finding(**data)) != []

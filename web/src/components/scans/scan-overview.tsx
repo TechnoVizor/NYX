@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { SeverityBadge } from "@/components/findings/severity-badge";
 import { Button } from "@/components/ui/button";
 import { EventList } from "@/components/plugins/run-panel";
 import { StatusText } from "@/components/scans/scan-status";
 import { api, ApiError } from "@/lib/api/client";
 import { scanLive, useMe, useRunEvents, useScan, useScanRuns, useScanTargets } from "@/lib/api/hooks";
+import { severities } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function ScanOverview({ id }: { id: string }) {
@@ -53,6 +56,14 @@ export function ScanOverview({ id }: { id: string }) {
             <p className="mt-1 font-mono text-lg">{v}</p>
           </div>
         ))}
+      </section>
+      <section className="flex flex-wrap items-center gap-3">
+        <span className="text-xs text-subtle">Findings</span>
+        {severities.filter((s) => scan.findings_by_severity[s]).map((s) => (
+          <span key={s} className="flex items-center gap-1.5"><SeverityBadge severity={s} /><span className="font-mono text-xs">{scan.findings_by_severity[s]}</span></span>
+        ))}
+        {!Object.keys(scan.findings_by_severity).length && <span className="text-xs text-muted-foreground">none yet</span>}
+        <Link href={`/app/scans/${id}/findings`} className="text-xs underline">Open the list</Link>
       </section>
       <section>
         <h2 className="mb-3 text-sm font-semibold">Runs</h2>

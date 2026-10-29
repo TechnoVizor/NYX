@@ -16,6 +16,8 @@ from datetime import UTC, datetime
 INPUT: dict = json.loads(os.environ.get("NYX_INPUT", "{}"))
 # A batch arrives in "targets"; "target" (the first one) stays so single-target adapters keep working.
 TARGETS: list[dict] = INPUT.get("targets") or ([INPUT["target"]] if "target" in INPUT else [])
+# Per-plugin settings chosen for this scan, already validated against the manifest's config_schema.
+CONFIG: dict = INPUT.get("config") or {}
 
 
 def emit(type: str, data: dict, target: dict | None = None, confidence: float | None = None) -> None:

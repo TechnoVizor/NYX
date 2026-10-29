@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { AssetsView } from "@/components/assets/assets-view";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const metadata: Metadata = { title: "Assets" };
 
-export default function Page() {
-  return <PlaceholderPage title="Assets" description="Domains, hosts, services and endpoints discovered so far." route="/app/assets" />;
+export default async function Page(props: PageProps<"/app/assets">) {
+  const searchParams = await props.searchParams;
+  return (
+    <>
+      <PageHeader title="Assets" description="Every host, address and web service my scans have seen, with what is still open on it." />
+      <AssetsView searchParams={searchParams} />
+    </>
+  );
 }

@@ -52,3 +52,30 @@ def test_0005_moves_target_into_targets_and_back():
         command.upgrade(cfg, "head")
         with engine.begin() as c:
             c.execute(text("delete from plugins where id = 'm.p'"))
+
+
+def test_0006_seeds_builtin_profiles_and_round_trips():
+    from sqlalchemy import text
+
+    from app.db import engine
+
+    cfg = Config("alembic.ini")
+    with engine.begin() as c:
+        rows = c.execute(
+            text("select name, builtin, plugin_ids, plugin_config, max_depth from scan_profiles order by name")
+        ).all()
+    assert [(r.name, r.builtin, r.max_depth) for r in rows] == [("Balanced", True, 3), ("Quick", True, 3)]
+    balanced, quick = rows
+    assert balanced.plugin_ids == [
+        "projectdiscovery.subfinder",
+        "projectdiscovery.dnsx",
+        "projectdiscovery.httpx",
+        "projectdiscovery.nuclei",
+    ]
+    assert quick.plugin_config == {"projectdiscovery.nuclei": {"severity": ["high", "critical"]}}
+    command.downgrade(cfg, "0005")
+    try:
+        with engine.begin() as c:
+            assert c.scalar(text("select to_regclass('findings')")) is None
+    finally:
+        command.upgrade(cfg, "head")

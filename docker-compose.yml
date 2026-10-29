@@ -124,10 +124,19 @@ services:
     image: nyx-plugin/httpx:1.12.0
     build: {context: ./plugins, dockerfile: projectdiscovery.httpx/Dockerfile}
 
+  plugin-nuclei:
+    profiles: ["plugins"]
+    image: nyx-plugin/nuclei:3.11.1
+    build: {context: ./plugins, dockerfile: projectdiscovery.nuclei/Dockerfile}
+
   testbed:
-    # Local lab target for safe_active plugins: add scope "nyx-lab.test" (active allowed), run httpx on testbed.nyx-lab.test.
+    # Local lab target: add scope "nyx-lab.test" (active allowed) and scan testbed.nyx-lab.test.
+    # lab/testbed serves a fake /.git/config, /.env and a directory listing for Nuclei to find.
     profiles: ["lab"]
     image: nginx:1.27-alpine
+    volumes:
+      - ./lab/testbed/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./lab/testbed/html:/usr/share/nginx/html:ro
     networks:
       nyx-plugins:
         aliases: [testbed.nyx-lab.test]

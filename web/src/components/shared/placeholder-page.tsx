@@ -1,8 +1,8 @@
 import { Hammer } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 
-/** Stand-in for screens that are routed but not built yet. */
-export function PlaceholderPage({ title, description, route }: { title: string; description?: string; route: string }) {
+/** Stand-in for screens that are routed but not built yet; `phase` says what brings them. */
+export function PlaceholderPage({ title, description, route, phase }: { title: string; description?: string; route: string; phase?: string }) {
   return (
     <>
       <PageHeader title={title} description={description} />
@@ -11,6 +11,7 @@ export function PlaceholderPage({ title, description, route }: { title: string; 
           <Hammer className="size-4 text-muted-foreground" />
         </span>
         <p className="text-sm font-medium">Not built yet</p>
+        {phase && <p className="max-w-md text-xs text-muted-foreground">{phase}</p>}
         <p className="font-mono text-xs text-subtle">{route}</p>
       </div>
     </>

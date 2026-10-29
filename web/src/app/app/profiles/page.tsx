@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { PageHeader } from "@/components/shared/page-header";
+import { ProfilesView } from "@/components/profiles/profiles-view";
 
 export const metadata: Metadata = { title: "Scan Profiles" };
 
 export default function Page() {
-  return <PlaceholderPage title="Scan Profiles" description="Reusable scan profiles." route="/app/profiles" />;
+  return (
+    <>
+      <PageHeader title="Scan profiles" description="Saved sets of plugins, settings and depth. Quick and Balanced are built in and never change, so their results stay comparable." />
+      <ProfilesView />
+    </>
+  );
 }

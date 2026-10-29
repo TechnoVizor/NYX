@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.db import SessionLocal
 from app.registry import sync_plugins
-from app.routes import auth, health, plugins, runs, scans, scope
+from app.routes import assets, auth, dashboard, findings, health, plugins, profiles, runs, scans, scope
 from app.runner import get_runner
 from app.temporal import connect
 
@@ -19,5 +19,5 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="NYX API", version="0.3.0", lifespan=lifespan)
-for r in (health, auth, scope, plugins, runs, scans):
+for r in (health, auth, scope, plugins, runs, scans, profiles, findings, assets, dashboard):
     app.include_router(r.router)

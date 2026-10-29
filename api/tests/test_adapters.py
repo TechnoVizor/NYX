@@ -14,6 +14,7 @@ CASES = {
     "projectdiscovery.subfinder": ({"type": "domain", "value": "example.com"}, {"asset", "relation"}),
     "projectdiscovery.dnsx": ({"type": "domain", "value": "example.com"}, {"asset", "relation"}),
     "projectdiscovery.httpx": ({"type": "domain", "value": "testbed.nyx-lab.test"}, {"asset"}),
+    "projectdiscovery.nuclei": ({"type": "url", "value": "http://testbed.nyx-lab.test"}, {"finding"}),
 }
 
 
@@ -102,3 +103,48 @@ def test_subfinder_runs_every_domain_in_the_batch():
     assert all(validate_event(e) == [] for e in events)
     # The fixture replays once per domain, so every domain in the batch shows up as an event target.
     assert {e["target"]["value"] for e in relations} == {"example.org", "example.com"}
+
+
+def _nuclei():
+    import importlib.util
+
+    sys.path.insert(0, str(ROOT / "sdk"))
+    spec = importlib.util.spec_from_file_location("nuclei_adapter", ROOT / "projectdiscovery.nuclei" / "adapter.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # main() only runs under __main__
+    return mod
+
+
+@pytest.mark.parametrize(
+    "config",
+    [{}, {"severity": ["critical"]}, {"exclude_tags": ["cve"]}, {"exclude_tags": ["dos"], "severity": ["info"]}],
+)
+def test_nuclei_hard_exclusions_survive_any_config(config):
+    m = _nuclei()
+    cmd = m.command(config, 10)
+    tags = cmd[cmd.index("-etags") + 1].split(",")
+    assert set(m.HARD_TAGS) <= set(tags)
+    assert cmd[cmd.index("-exclude-type") + 1] == ",".join(m.HARD_TYPES)
+    assert "-no-interactsh" in cmd and "-duc" in cmd
+    assert cmd[cmd.index("-severity") + 1] == ",".join(config.get("severity", ["low", "medium", "high", "critical"]))
+
+
+def test_nuclei_fixture_maps_fields():
+    target = {"type": "url", "value": "http://testbed.nyx-lab.test"}
+    nyx_input = {"run_id": "r1", "plugin_id": "projectdiscovery.nuclei", "plugin_version": "x"}
+    nyx_input |= {"targets": [target], "target": target, "config": {}, "rate_limit": 10}
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(ROOT / "sdk"),
+        "NYX_FIXTURE": str(ROOT / "projectdiscovery.nuclei" / "fixtures" / "output.jsonl"),
+        "NYX_INPUT": json.dumps(nyx_input),
+    }
+    adapter = str(ROOT / "projectdiscovery.nuclei" / "adapter.py")
+    out = subprocess.run([sys.executable, adapter], env=env, capture_output=True, text=True, check=True)
+    found = [e for e in map(json.loads, out.stdout.splitlines()) if e["type"] == "finding"]
+    git = next(e for e in found if e["data"]["template_id"] == "git-config")
+    assert git["data"]["matched_at"] == "http://testbed.nyx-lab.test/.git/config"
+    assert git["data"]["severity"] == "medium"
+    assert git["target"] == target
+    full = next(e for e in found if e["data"].get("cve"))
+    assert full["data"]["cve"] == ["CVE-2021-41773"] and full["data"]["references"] and full["data"]["curl"]

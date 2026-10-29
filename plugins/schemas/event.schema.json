@@ -26,6 +26,21 @@
     { "if": { "properties": { "type": { "const": "log" } } }, "then": { "properties": { "data": { "required": ["level", "message"] } } } },
     { "if": { "properties": { "type": { "const": "progress" } } }, "then": { "properties": { "data": { "required": ["percent"], "properties": { "percent": { "type": "integer", "minimum": 0, "maximum": 100 } } } } } },
     { "if": { "properties": { "type": { "const": "metric" } } }, "then": { "properties": { "data": { "required": ["name", "value"] } } } },
-    { "if": { "properties": { "type": { "const": "finding" } } }, "then": { "properties": { "data": { "required": ["title", "severity"] } } } }
+    { "if": { "properties": { "type": { "const": "finding" } } }, "then": { "properties": { "data": {
+      "required": ["title", "severity"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "template_id": { "type": "string" },
+        "matched_at": { "type": "string" },
+        "description": { "type": "string" },
+        "curl": { "type": "string" },
+        "matcher": { "type": "string" },
+        "references": { "type": "array", "items": { "type": "string" } },
+        "cve": { "type": "array", "items": { "type": "string" } },
+        "cwe": { "type": "array", "items": { "type": "string" } },
+        "extracted": { "type": "array", "items": { "type": "string" } }
+      }
+    } } } }
   ]
 }

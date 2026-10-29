@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default function Page() {
-  return <PlaceholderPage title="Dashboard" description="Workspace overview: recent scans, open findings and what changed." route="/app/dashboard" />;
+  return (
+    <>
+      <PageHeader title="Dashboard" description="What is open, what is new, and where it sits." />
+      <DashboardView />
+    </>
+  );
 }

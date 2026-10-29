@@ -4,5 +4,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 export const metadata: Metadata = { title: "Audit Log" };
 
 export default function Page() {
-  return <PlaceholderPage title="Audit Log" description="Who ran what, against which scope." route="/app/audit" />;
+  return <PlaceholderPage phase="Next small step after Phase 4a." title="Audit Log" description="Who ran what, against which scope." route="/app/audit" />;
 }

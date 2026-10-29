@@ -10,6 +10,7 @@ export default function OnboardingPage() {
         title="Onboarding"
         description="Workspace, default profile, optional API credentials, scope confirmation, first scan."
         route="/onboarding"
+        phase="Next small step after Phase 4a."
       />
     </div>
   );
