@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, Plus } from "lucide-react";
+import { LogOut, Menu, Monitor, Moon, Plus, Sun } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSignOut } from "@/components/layout/topbar";
 import { useMe } from "@/lib/api/hooks";
-import { navGroups, primaryNav } from "@/lib/nav";
+import { navGroups, primaryNav, settingsNav } from "@/lib/nav";
+import { useTheme } from "@/lib/use-theme";
 import { cn } from "@/lib/utils";
 
 const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -18,7 +19,8 @@ export function MobileNav() {
   const { signOut, error } = useSignOut();
   const [more, setMore] = useState(false);
   const canScan = useMe().data?.role !== "viewer";
-  const setup = navGroups.filter((g) => g.items !== primaryNav).flatMap((g) => g.items);
+  const setup = [...navGroups.filter((g) => g.items !== primaryNav).flatMap((g) => g.items), settingsNav];
+  const { pref, setMode } = useTheme();
 
   return (
     <>
@@ -86,7 +88,23 @@ export function MobileNav() {
                 </Link>
               </li>
             ))}
-            <li className="mt-2 border-t border-border pt-2">
+            <li className="mt-2 border-t border-border pt-3">
+              <div role="radiogroup" aria-label="Theme mode" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-2 p-1">
+                {([["light", Sun], ["dark", Moon], ["system", Monitor]] as const).map(([m, Icon]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={pref.mode === m}
+                    onClick={() => setMode(m)}
+                    className={cn("flex min-h-11 items-center justify-center gap-2 rounded-md text-xs capitalize", pref.mode === m ? "bg-brand-soft text-brand" : "text-muted-foreground")}
+                  >
+                    <Icon className="size-4" aria-hidden /> {m}
+                  </button>
+                ))}
+              </div>
+            </li>
+            <li className="mt-1 border-t border-border pt-2">
               <button
                 type="button"
                 onClick={signOut}
