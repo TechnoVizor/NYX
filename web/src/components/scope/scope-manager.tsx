@@ -1,6 +1,7 @@
 "use client";
 
-import { Crosshair, Eye, Globe, Network, Zap } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Crosshair, Eye, Globe, Network, Trash2, Zap } from "lucide-react";
 import { Choice } from "@/components/shared/choice";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,7 @@ export function ScopeManager() {
       setErr(x instanceof ApiError ? x.message : "Something went wrong. Try again.");
     }
   };
+  const [confirming, setConfirming] = useState<string | null>(null);
   const remove = async (id: string) => {
     await api.removeScope(id).catch((x) => setErr(x instanceof ApiError ? x.message : "Could not remove it."));
     refresh();
@@ -59,7 +61,17 @@ export function ScopeManager() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{s.authorization}</p>
               </div>
-              {admin && <Button variant="ghost" size="sm" onClick={() => remove(s.id)} aria-label={`Remove ${s.value}`}>Remove</Button>}
+              {admin && (confirming === s.id ? (
+                <span className="flex shrink-0 items-center gap-2 text-xs">
+                  Stop scanning it?
+                  <Button variant="destructive" size="sm" onClick={() => { setConfirming(null); remove(s.id); }}>Remove</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirming(null)}>Keep</Button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setConfirming(s.id)} aria-label={`Remove ${s.value}`} title="Remove" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-sev-critical">
+                  <Trash2 className="size-4" />
+                </button>
+              ))}
             </li>
           ))}
         </ul>
@@ -76,7 +88,7 @@ export function ScopeManager() {
             <Input value={f.authorization} onChange={(e) => setF({ ...f, authorization: e.target.value })} placeholder="e.g. My own domain" />
           </label>
           <label className="flex items-center gap-2 text-sm" title="Lets plugins send traffic to the target, not only read public sources">
-            <input type="checkbox" checked={f.active_allowed} onChange={(e) => setF({ ...f, active_allowed: e.target.checked })} />
+            <Checkbox checked={f.active_allowed} onCheckedChange={(checked) => setF({ ...f, active_allowed: checked })} />
             <Zap className="size-4 text-sev-medium" aria-hidden /> Active scanning
             <span className="text-muted-foreground">· sends traffic</span>
           </label>

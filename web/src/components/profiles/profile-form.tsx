@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export function ProfileForm({ initial, mode, onDone }: { initial?: Profile; mode
           {(plugins ?? []).filter((p) => p.risk_level !== "intrusive").map((p) => (
             <li key={p.id}>
               <label className="flex items-center gap-3 text-sm">
-                <input type="checkbox" checked={form.plugin_ids.includes(p.id)} onChange={() => toggle(p.id)} />
+                <Checkbox checked={form.plugin_ids.includes(p.id)} onCheckedChange={() => toggle(p.id)} />
                 <span className="font-medium">{p.name}</span><RiskBadge risk={p.risk_level} />
                 {(!p.enabled || !p.digest) && <span className="text-xs text-subtle">not runnable now</span>}
               </label>

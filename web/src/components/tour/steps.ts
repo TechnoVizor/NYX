@@ -25,7 +25,7 @@ export function copyFor(view: NonNullable<TourView>, f: Facts, pathname: string)
       return {
         name: "Hello",
         title: "Hi, I'm NYX.",
-        body: "I map what your domains show to the internet. Four quick steps, on the real screens.",
+        body: "I map what your domains show to the internet. A few quick steps, on the real screens.",
         target: home(pathname) ? "home-steps" : undefined,
         primary: { label: "Show me", ack: true },
       };

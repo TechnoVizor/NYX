@@ -46,7 +46,7 @@ export function Topbar() {
       >
         <Search className="size-4" />
         <span className="flex-1 text-left">Search or run a command…</span>
-        <kbd className="kbd">Ctrl K</kbd>
+        <span className="hidden md:inline-flex"><kbd className="kbd">Ctrl K</kbd></span>
       </button>
       <div className="ml-auto flex items-center gap-3 text-xs text-subtle">
         {me && me.role !== "viewer" && (

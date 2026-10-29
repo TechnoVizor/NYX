@@ -17,7 +17,7 @@ export function Choice({ value, onChange, options, label, className }: { value: 
       <SelectTrigger aria-label={label} className={className}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false}>
         {items.map((o) => (
           <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
         ))}

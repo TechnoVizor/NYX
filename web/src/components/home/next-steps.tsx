@@ -42,7 +42,7 @@ export function NextSteps({ facts, items, current, allDone }: { facts: Facts; it
   if (allDone && !open)
     return (
       <p className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        <Check className="size-4 text-sev-low" aria-hidden /> You&apos;re set up: a target, a scan and a review are in place.
+        <Check className="size-4 shrink-0 text-sev-low" aria-hidden /><span className="flex-1">You&apos;re set up: a target, a scan and a review are in place.</span>
         <button type="button" onClick={() => setOpen(true)} className="text-foreground underline">Show steps</button>
       </p>
     );

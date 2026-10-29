@@ -1,6 +1,8 @@
 "use client";
 
+import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
+import { ShieldCheck, TriangleAlert } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RiskBadge } from "@/components/plugins/risk-badge";
 import { api } from "@/lib/api/client";
@@ -20,31 +22,26 @@ export function PluginsTable() {
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead className="border-b border-border text-left text-xs text-subtle">
-          <tr>{["Plugin", "Risk", "Trust", "Version", "Image", "Enabled"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {data.map((p) => (
-            <tr key={p.id} className="border-b border-border last:border-0 hover:bg-surface-1">
-              <td className="px-4 py-3">
-                <Link href={`/app/plugins/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
-                <p className="text-xs text-subtle">{p.publisher} · {p.categories.join(", ")}</p>
-              </td>
-              <td className="px-4 py-3"><RiskBadge risk={p.risk_level} /></td>
-              <td className="px-4 py-3 text-muted-foreground">{p.trust_level}</td>
-              <td className="px-4 py-3 font-mono text-xs">{p.version}</td>
-              <td className="px-4 py-3 font-mono text-xs">{p.digest ? p.digest.slice(7, 19) : <span className="text-sev-critical">image missing</span>}</td>
-              <td className="px-4 py-3">
-                {me?.role === "admin" ? (
-                  <input type="checkbox" aria-label={`Enable ${p.name}`} checked={p.enabled} onChange={(e) => toggle(p.id, e.target.checked)} />
-                ) : (p.enabled ? "Yes" : "No")}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-border rounded-lg border border-border">
+      {data.map((p) => (
+        <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <div className="flex min-w-48 flex-1 flex-col">
+            <span className="flex items-center gap-1.5">
+              <Link href={`/app/plugins/${p.id}`} className="font-medium hover:underline">{p.name}</Link>
+              {p.trust_level === "verified" && <ShieldCheck className="size-4 text-sev-low" aria-label="Verified" />}
+              <span className="text-xs text-muted-foreground">{p.version}</span>
+            </span>
+            <span className="text-xs text-muted-foreground">{p.publisher}</span>
+          </div>
+          <RiskBadge risk={p.risk_level} />
+          {!p.digest && <span className="flex items-center gap-1 text-xs text-sev-critical"><TriangleAlert className="size-3.5" aria-hidden />Image missing</span>}
+          <span className="ml-auto">
+            {me?.role === "admin" ? (
+              <Switch aria-label={`Enable ${p.name}`} checked={p.enabled} onCheckedChange={(checked) => toggle(p.id, checked)} />
+            ) : <span className="text-xs text-muted-foreground">{p.enabled ? "On" : "Off"}</span>}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -77,8 +77,11 @@ export function TourCard({
     >
       <Image src="/brand/nyx-portrait.webp" alt="" width={72} height={96} className="h-24 w-[72px] shrink-0 rounded-lg bg-surface-3 object-cover object-top" />
       <div className="flex min-w-0 flex-col gap-2">
-        <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
-          Step {index} / 5 · {copy.name}
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="flex gap-1" role="img" aria-label={`Step ${index} of 5`}>
+            {[1, 2, 3, 4, 5].map((i) => <span key={i} className={i === index ? "h-1.5 w-4 rounded-full bg-brand" : i < index ? "size-1.5 rounded-full bg-muted-foreground" : "size-1.5 rounded-full bg-input"} />)}
+          </span>
+          {copy.name}
         </p>
         <h2 id="tour-title" className="text-base font-semibold text-balance">{copy.title}</h2>
         <p id="tour-body" className="text-sm text-muted-foreground text-pretty">{copy.body}</p>

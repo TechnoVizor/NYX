@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/shared/time";
 import Link from "next/link";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
@@ -83,7 +84,7 @@ export function DashboardView() {
               <li key={s.id} className={item}>
                 <Link href={`/app/scans/${s.id}`} className="font-medium hover:underline">{s.root_target.value}</Link>
                 <StatusText status={s.status} />
-                <span className="ml-auto text-xs text-subtle">{new Date(s.created_at).toLocaleString()}</span>
+                <span className="ml-auto text-xs text-subtle"><Time iso={s.created_at} /></span>
               </li>
             ))}
             {!d.recent_scans.length && <li className={`${item} text-xs text-muted-foreground`}>No scans yet.&nbsp;<Link href="/app/scans/new" className="underline">Start one.</Link></li>}

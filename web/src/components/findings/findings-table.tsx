@@ -1,5 +1,6 @@
 "use client";
 
+import { Time } from "@/components/shared/time";
 import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
 import { SearchX, ShieldCheck } from "lucide-react";
@@ -8,11 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FindingStatusText, statusLabel } from "@/components/findings/finding-status";
 import { SeverityBadge } from "@/components/findings/severity-badge";
-import { useFindings, usePlugins } from "@/lib/api/hooks";
+import { useFindings, usePluginName, usePlugins } from "@/lib/api/hooks";
 import { findingStatuses, severities, type FindingStatus, type Severity } from "@/lib/types";
 import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
-export const when = (iso: string) => new Date(iso).toLocaleString();
 
 export function LoadMore({ more, busy, onMore }: { more: boolean; busy: boolean; onMore: () => void }) {
   if (!more) return null;
@@ -40,6 +40,8 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
     severity: sev, status: statuses, plugin_id: plugin || undefined, scan_id: scanId, q: query || undefined,
   });
   const rows = data?.pages.flatMap((p) => p.items) ?? [];
+  const onePlugin = new Set(rows.map((r) => r.plugin_id)).size <= 1; // a column with one value says nothing
+  const pluginName = usePluginName();
   const toggle = (s: Severity) => setSev(sev.includes(s) ? sev.filter((x) => x !== s) : [...sev, s]);
 
   return (
@@ -47,7 +49,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
       <div className="flex flex-wrap items-center gap-2">
         {severities.map((s) => (
           <button key={s} type="button" onClick={() => toggle(s)} aria-pressed={sev.includes(s)}
-            className={cn("rounded-lg border px-2 py-1 text-xs capitalize", sev.includes(s) ? "border-border-strong bg-surface-2" : "border-border text-muted-foreground")}>
+            className={cn("rounded-lg border px-2 py-1 text-xs capitalize", sev.includes(s) ? "border-brand bg-brand-soft text-foreground" : "border-input text-muted-foreground")}>
             {s}
           </button>
         ))}
@@ -83,7 +85,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
         <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs text-subtle">
-              <tr>{["Severity", "Finding", "Where", "Plugin", "Status", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
+              <tr>{["Severity", "Finding", "Where", ...(onePlugin ? [] : ["Plugin"]), "Status", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((f, i) => (
@@ -91,12 +93,11 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
                   <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
                   <td className="px-4 py-3">
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>
-                    <p className="font-mono text-xs text-subtle">{f.template_id}</p>
                   </td>
                   <td className="max-w-80 truncate px-4 py-3 font-mono text-xs" title={f.matched_at}>{f.matched_at}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{plugins?.find((p) => p.id === f.plugin_id)?.name ?? f.plugin_id}</td>
+                  {!onePlugin && <td className="px-4 py-3 text-xs text-muted-foreground">{pluginName(f.plugin_id)}</td>}
                   <td className="px-4 py-3"><FindingStatusText status={f.status} /></td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{when(f.last_seen)}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground"><Time iso={f.last_seen} /></td>
                 </tr>
               ))}
             </tbody>

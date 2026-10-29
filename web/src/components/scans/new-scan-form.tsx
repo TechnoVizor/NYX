@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Choice } from "@/components/shared/choice";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -67,12 +68,12 @@ export function NewScanForm({ initialProfile }: { initialProfile?: string }) {
           <Input list="scan-scope" value={value} onChange={(e) => setValue(e.target.value)} placeholder={suggestions[0] ?? "example.com"} className="max-w-xs" aria-label="Target" />
           <datalist id="scan-scope">{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
         </div>
-        <p className="text-xs text-muted-foreground">Only targets in scope. Everything I find is checked against scope again before I touch it.</p>
+
       </fieldset>
       <label className="flex flex-col gap-2 text-sm">
         <span className="font-semibold">Profile</span>
         <Choice value={chosen} onChange={(v) => { setProfileId(v); setPicked(null); setDepth(null); }} label="Profile" className="max-w-xs" options={[...usable.map((p) => ({ value: p.id, label: p.name })), { value: "", label: "Choose plugins by hand" }]} />
-        {profile?.description && <span className="text-xs text-muted-foreground">{profile.description}</span>}
+
       </label>
       <fieldset>
         <legend className="mb-2 text-sm font-semibold">Plugins</legend>
@@ -81,7 +82,7 @@ export function NewScanForm({ initialProfile }: { initialProfile?: string }) {
           {runnable.map((p) => (
             <li key={p.id}>
               <label className="flex items-center gap-3 text-sm">
-                <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
+                <Checkbox checked={selected.includes(p.id)} onCheckedChange={() => toggle(p.id)} />
                 <span className="font-medium">{p.name}</span>
                 <RiskBadge risk={p.risk_level} />
               </label>

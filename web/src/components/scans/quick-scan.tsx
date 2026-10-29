@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Crosshair, Zap } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
@@ -96,7 +97,7 @@ export function QuickScan() {
             <Input value={authorization} onChange={(e) => setAuthorization(e.target.value)} placeholder="e.g. My own domain" />
           </label>
           <label className="flex items-center gap-2 text-sm" title="Lets plugins send traffic to the target, not only read public sources">
-            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked)} />
             <Zap className="size-4 text-sev-medium" aria-hidden /> Active scanning
             <span className="text-muted-foreground">· sends traffic</span>
           </label>

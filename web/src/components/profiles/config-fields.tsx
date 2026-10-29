@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,7 +45,7 @@ function Field({ name, schema, value, onChange }: { name: string; schema: JsonSc
       <div className="flex flex-col gap-1.5 text-sm">
         <span className="text-xs text-muted-foreground">{name}</span>
         <div className="flex flex-wrap gap-3">
-          {options.map((o) => <label key={o} className="flex items-center gap-1.5"><input type="checkbox" checked={current.includes(o)} onChange={() => toggle(o)} />{o}</label>)}
+          {options.map((o) => <label key={o} className="flex items-center gap-1.5"><Checkbox checked={current.includes(o)} onCheckedChange={() => toggle(o)} />{o}</label>)}
         </div>
       </div>
     );

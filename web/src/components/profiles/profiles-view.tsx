@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Lock, Waypoints } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProfileForm } from "@/components/profiles/profile-form";
 import { api, ApiError } from "@/lib/api/client";
-import { useMe, useProfiles } from "@/lib/api/hooks";
+import { useMe, usePluginName, useProfiles } from "@/lib/api/hooks";
 import type { Profile } from "@/lib/types";
 
 type Editing = { mode: "create" | "edit" | "duplicate"; profile?: Profile } | null;
@@ -21,6 +21,7 @@ const settings = (p: Profile) =>
 export function ProfilesView() {
   const qc = useQueryClient();
   const { data: profiles, error } = useProfiles();
+  const name = usePluginName();
   const { data: me } = useMe();
   const [editing, setEditing] = useState<Editing>(null);
   const [err, setErr] = useState("");
@@ -48,11 +49,11 @@ export function ProfilesView() {
             <div className="flex items-center gap-2">
               {p.builtin && <Lock className="size-3.5 text-subtle" aria-label="Built-in, read-only" />}
               <h2 className="font-semibold">{p.name}</h2>
-              <span className="ml-auto font-mono text-xs text-subtle">depth {p.max_depth}</span>
+              <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground" title="How many hops from the target I follow"><Waypoints className="size-3.5" aria-hidden />depth {p.max_depth}</span>
             </div>
-            {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
-            <p className="font-mono text-xs">{p.plugin_ids.join(", ")}</p>
-            {settings(p) && <p className="text-xs text-subtle">{settings(p)}</p>}
+            <p className="flex flex-wrap gap-1.5" title={[p.description, settings(p)].filter(Boolean).join(" · ")}>
+              {p.plugin_ids.map((id) => <span key={id} className="rounded border border-border-strong px-1.5 text-xs text-muted-foreground">{name(id)}</span>)}
+            </p>
             {!p.available && <p className="text-xs text-sev-high">Not runnable now: {p.unavailable.join(", ")} is disabled or not built.</p>}
             <div className="mt-auto flex flex-wrap gap-2">
               {p.available && <Link href={`/app/scans/new?profile=${p.id}`} className={buttonVariants({ size: "sm" })}>Scan with this profile</Link>}

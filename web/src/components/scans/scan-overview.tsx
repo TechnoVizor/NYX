@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EventList } from "@/components/plugins/run-panel";
 import { StatusText } from "@/components/scans/scan-status";
 import { api, ApiError } from "@/lib/api/client";
-import { scanLive, useMe, useRunEvents, useScan, useScanRuns, useScanTargets } from "@/lib/api/hooks";
+import { scanLive, useMe, usePluginName, useRunEvents, useScan, useScanRuns, useScanTargets } from "@/lib/api/hooks";
 import { severities } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export function ScanOverview({ id }: { id: string }) {
   const { data: runs } = useScanRuns(id, live);
   const { data: targets } = useScanTargets(id, live);
   const { data: me } = useMe();
+  const name = usePluginName();
   const [open, setOpen] = useState<string | null>(null);
   const [err, setErr] = useState("");
   if (error) return <p role="alert" className="text-sm text-sev-critical">{error.message}</p>;
@@ -34,9 +35,7 @@ export function ScanOverview({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-wrap items-center gap-4">
-        <StatusText status={scan.status} />
-        <span className="text-sm">{scan.root_target.value}</span>
-        <span className="text-xs text-subtle">{scan.plugin_ids.join(", ")} · depth {scan.max_depth}</span>
+        <span className="flex flex-wrap gap-1.5">{scan.plugin_ids.map((p) => <span key={p} className="rounded border border-border-strong px-1.5 text-xs text-muted-foreground">{name(p)}</span>)}</span>
         {scan.error && <span className="text-xs text-sev-critical">{scan.error}</span>}
         {canControl && (
           <span className="ml-auto flex gap-2">
@@ -71,7 +70,7 @@ export function ScanOverview({ id }: { id: string }) {
           {(runs ?? []).map((r) => (
             <li key={r.id} className="border-b border-border last:border-0">
               <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="flex w-full flex-wrap items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-1">
-                <span className="font-medium">{r.plugin_id}</span>
+                <span className="font-medium">{name(r.plugin_id)}</span>
                 <StatusText status={r.status} />
                 <span className="text-xs text-subtle">{r.targets.length === 1 ? r.targets[0].value : `${r.targets.length} targets`} · {r.event_count} events{r.attempt > 1 && ` · attempt ${r.attempt}`}</span>
                 {r.error && <span className="text-xs text-sev-critical">{r.error.slice(0, 120)}</span>}
