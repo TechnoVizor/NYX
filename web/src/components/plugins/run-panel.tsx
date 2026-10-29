@@ -1,5 +1,6 @@
 "use client";
 
+import { Choice } from "@/components/shared/choice";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { statusName } from "@/components/scans/scan-status";
 import { api, ApiError } from "@/lib/api/client";
 import { useRun, useRunEvents, useScope } from "@/lib/api/hooks";
-import type { PluginDetail, PluginEvent, TargetType } from "@/lib/types";
+import { targetTypeName, type PluginDetail, type PluginEvent, type TargetType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const live = (s?: string) => s === "PENDING" || s === "RUNNING";
@@ -54,9 +55,7 @@ export function RunPanel({ plugin }: { plugin: PluginDetail }) {
       <h2 className="text-sm font-semibold">Run against one target</h2>
       <p className="mt-1 text-xs text-muted-foreground">Only targets in scope. {plugin.risk_level !== "passive" && "This plugin touches the target, so its scope entry must allow active scanning."}</p>
       <form onSubmit={submit} className="mt-4 flex flex-wrap items-center gap-2">
-        <select value={type} onChange={(e) => setType(e.target.value as TargetType)} className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm">
-          {accepts.map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
+        <Choice value={type} onChange={(v) => setType(v as TargetType)} label="Target type" options={accepts.map((a) => ({ value: a, label: targetTypeName[a] }))} />
         <Input list="scope-domains" value={value} onChange={(e) => setValue(e.target.value)} placeholder={suggestions[0] ?? "example.com"} className="max-w-xs" aria-label="Target" />
         <datalist id="scope-domains">{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
         <Button type="submit" disabled={busy || !value.trim()}>{busy ? "Starting…" : "Run"}</Button>

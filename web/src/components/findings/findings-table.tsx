@@ -1,6 +1,8 @@
 "use client";
 
+import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
+import { SearchX, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +13,6 @@ import { findingStatuses, severities, type FindingStatus, type Severity } from "
 import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
 export const when = (iso: string) => new Date(iso).toLocaleString();
-export const selectClass = "h-8 rounded-lg border border-input bg-transparent px-2 text-sm";
 
 export function LoadMore({ more, busy, onMore }: { more: boolean; busy: boolean; onMore: () => void }) {
   if (!more) return null;
@@ -50,31 +51,36 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
             {s}
           </button>
         ))}
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" className={selectClass}>
-          <option value="active">Open and confirmed</option>
-          <option value="all">Every status</option>
-          {findingStatuses.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
-        </select>
-        <select value={plugin} onChange={(e) => setPlugin(e.target.value)} aria-label="Plugin" className={selectClass}>
-          <option value="">Every plugin</option>
-          {(plugins ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <Choice value={status} onChange={setStatus} label="Status" options={[{ value: "active", label: "Open and confirmed" }, { value: "all", label: "Every status" }, ...findingStatuses.map((s) => ({ value: s, label: statusLabel[s] }))]} />
+        <Choice value={plugin} onChange={setPlugin} label="Plugin" options={[{ value: "", label: "Every plugin" }, ...(plugins ?? []).map((p) => ({ value: p.id, label: p.name }))]} />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, template, URL" aria-label="Search" className="max-w-xs" />
         {data && <span className="ml-auto text-xs text-subtle">{data.pages[0].total} findings</span>}
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading findings…</p> : !rows.length ? (
-        filtered ? (
-          <p className="text-sm text-muted-foreground">
-            No findings match these filters. <button type="button" onClick={clear} className="underline">Clear filters</button>
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {scanId ? "No open findings from this scan." : "No open findings. Scan a live web service with Nuclei and they show up here."}
-          </p>
-        )
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
+          {filtered ? <SearchX className="size-5 shrink-0" aria-hidden /> : <ShieldCheck className="size-5 shrink-0 text-sev-low" aria-hidden />}
+          {filtered ? (
+            <span>No findings match these filters. <button type="button" onClick={clear} className="text-foreground underline">Clear filters</button></span>
+          ) : (
+            <span>{scanId ? "No open findings from this scan." : "No open findings."}</span>
+          )}
+        </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <>
+        {/* Phones: one card per finding; the table needs more width than a phone has. */}
+        <ul className="flex flex-col gap-2 md:hidden">
+          {rows.map((f, i) => (
+            <li key={f.id} data-tour={i === 0 ? "finding-row" : undefined}>
+              <Link href={`/app/findings/${f.id}`} className="flex flex-col gap-1.5 rounded-lg border border-border p-3 hover:bg-surface-1">
+                <span className="flex items-center gap-2"><SeverityBadge severity={f.severity} /><FindingStatusText status={f.status} /></span>
+                <span className="font-medium">{f.title}</span>
+                <span className="truncate font-mono text-xs text-muted-foreground">{f.matched_at}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-xs text-subtle">
               <tr>{["Severity", "Finding", "Where", "Plugin", "Status", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
@@ -88,7 +94,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
                     <p className="font-mono text-xs text-subtle">{f.template_id}</p>
                   </td>
                   <td className="max-w-80 truncate px-4 py-3 font-mono text-xs" title={f.matched_at}>{f.matched_at}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{f.plugin_id}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{plugins?.find((p) => p.id === f.plugin_id)?.name ?? f.plugin_id}</td>
                   <td className="px-4 py-3"><FindingStatusText status={f.status} /></td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{when(f.last_seen)}</td>
                 </tr>
@@ -96,6 +102,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
             </tbody>
           </table>
         </div>
+        </>
       )}
       <LoadMore more={!!hasNextPage} busy={isFetchingNextPage} onMore={() => fetchNextPage()} />
     </div>

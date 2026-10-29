@@ -1,11 +1,13 @@
 "use client";
 
+import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
+import { Boxes, SearchX } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FindingStatusText } from "@/components/findings/finding-status";
-import { LoadMore, selectClass, when } from "@/components/findings/findings-table";
+import { LoadMore, when } from "@/components/findings/findings-table";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
 import { useAsset, useAssets } from "@/lib/api/hooks";
@@ -40,23 +42,20 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind" className={selectClass}>
-          <option value="">Every kind</option>
-          {Object.entries(kindName).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-        </select>
+        <Choice value={kind} onChange={setKind} label="Kind" options={[{ value: "", label: "Every kind" }, ...Object.entries(kindName).map(([value, label]) => ({ value, label }))]} />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search assets" className="max-w-xs" />
         {data && <span className="ml-auto text-xs text-subtle">{data.pages[0].total} assets</span>}
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading assets…</p> : !rows.length ? (
-        kind || query ? (
-          <p className="text-sm text-muted-foreground">
-            No assets match these filters.{" "}
-            <button type="button" onClick={() => { setKind(""); setQ(""); }} className="underline">Clear filters</button>
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">No assets yet. Every host and service a scan finds lands here.</p>
-        )
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
+          {kind || query ? <SearchX className="size-5 shrink-0" aria-hidden /> : <Boxes className="size-5 shrink-0 text-brand" aria-hidden />}
+          {kind || query ? (
+            <span>No assets match these filters. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></span>
+          ) : (
+            <span>No assets yet. A scan fills this list.</span>
+          )}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Targets" };
 export default function Page() {
   return (
     <>
-      <PageHeader title="Targets" description="What you allow me to scan, and who allowed it. A domain covers itself and its subdomains; plugins that send traffic need active scanning allowed." />
+      <PageHeader title="Targets" description="What I may scan. A domain includes its subdomains." />
       <ScopeManager />
     </>
   );

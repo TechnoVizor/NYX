@@ -1,12 +1,13 @@
 "use client";
 
+import { Choice } from "@/components/shared/choice";
 import { useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FindingStatusText, statusLabel } from "@/components/findings/finding-status";
-import { selectClass, when } from "@/components/findings/findings-table";
+import { when } from "@/components/findings/findings-table";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { api, ApiError } from "@/lib/api/client";
 import { useFinding, useMe } from "@/lib/api/hooks";
@@ -96,9 +97,7 @@ export function FindingDetail({ id }: { id: string }) {
         {f.status_at && <p className="text-xs text-subtle">Last changed {when(f.status_at)}{f.status_note ? ` — ${f.status_note}` : ""}</p>}
         {canReview ? (
           <div className="flex max-w-xl flex-col gap-2">
-            <select value={status ?? f.status} onChange={(e) => setStatus(e.target.value as FindingStatus)} aria-label="Status" className={`${selectClass} max-w-xs`}>
-              {findingStatuses.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
-            </select>
+            <Choice value={status ?? f.status} onChange={(v) => setStatus(v as FindingStatus)} label="Status" className="max-w-xs" options={findingStatuses.map((s) => ({ value: s, label: statusLabel[s] }))} />
             <Textarea value={note ?? f.status_note ?? ""} onChange={(e) => setNote(e.target.value)} placeholder="Why (optional)" maxLength={2000} aria-label="Note" />
             <div className="flex items-center gap-3"><Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save review"}</Button>{msg && <span role="status" className="text-xs text-muted-foreground">{msg}</span>}</div>
           </div>

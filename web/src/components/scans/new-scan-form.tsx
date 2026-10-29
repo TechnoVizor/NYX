@@ -1,5 +1,6 @@
 "use client";
 
+import { Choice } from "@/components/shared/choice";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -7,19 +8,14 @@ import { Input } from "@/components/ui/input";
 import { RiskBadge } from "@/components/plugins/risk-badge";
 import { api, ApiError } from "@/lib/api/client";
 import { usePlugins, useProfiles, useScope } from "@/lib/api/hooks";
-import type { TargetType } from "@/lib/types";
+import { targetTypeName, type TargetType } from "@/lib/types";
 
-const select = "h-8 max-w-xs rounded-lg border border-input bg-transparent px-2 text-sm";
 
 export function DepthSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <label className="flex flex-col gap-2 text-sm">
       <span className="font-semibold">Depth</span>
-      <select value={value} onChange={(e) => onChange(Number(e.target.value))} className={select}>
-        <option value={1}>1 · only the target</option>
-        <option value={2}>2 · the target and what it reveals</option>
-        <option value={3}>3 · one more hop</option>
-      </select>
+      <Choice value={String(value)} onChange={(v) => onChange(Number(v))} label="Depth" className="max-w-xs" options={[{ value: "1", label: "1 · only the target" }, { value: "2", label: "2 · the target and what it reveals" }, { value: "3", label: "3 · one more hop" }]} />
     </label>
   );
 }
@@ -67,9 +63,7 @@ export function NewScanForm({ initialProfile }: { initialProfile?: string }) {
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-semibold">Target</legend>
         <div className="flex flex-wrap gap-2">
-          <select value={type} onChange={(e) => setType(e.target.value as TargetType)} aria-label="Target type" className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm">
-            {(["domain", "ip", "url"] as const).map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <Choice value={type} onChange={(v) => setType(v as TargetType)} label="Target type" options={(["domain", "ip", "url"] as const).map((t) => ({ value: t, label: targetTypeName[t] }))} />
           <Input list="scan-scope" value={value} onChange={(e) => setValue(e.target.value)} placeholder={suggestions[0] ?? "example.com"} className="max-w-xs" aria-label="Target" />
           <datalist id="scan-scope">{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
         </div>
@@ -77,10 +71,7 @@ export function NewScanForm({ initialProfile }: { initialProfile?: string }) {
       </fieldset>
       <label className="flex flex-col gap-2 text-sm">
         <span className="font-semibold">Profile</span>
-        <select value={chosen} onChange={(e) => { setProfileId(e.target.value); setPicked(null); setDepth(null); }} className={select}>
-          {usable.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          <option value="">Choose plugins by hand</option>
-        </select>
+        <Choice value={chosen} onChange={(v) => { setProfileId(v); setPicked(null); setDepth(null); }} label="Profile" className="max-w-xs" options={[...usable.map((p) => ({ value: p.id, label: p.name })), { value: "", label: "Choose plugins by hand" }]} />
         {profile?.description && <span className="text-xs text-muted-foreground">{profile.description}</span>}
       </label>
       <fieldset>

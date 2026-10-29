@@ -50,9 +50,7 @@ export function NextSteps({ facts, items, current, allDone }: { facts: Facts; it
   return (
     <section data-tour="home-steps" aria-labelledby="next-steps" className="rounded-lg border border-border bg-surface-1 p-5">
       <h2 id="next-steps" className="text-base font-semibold">Your next step</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        I map what your domains show to the internet. Four steps get you from nothing to a reviewed finding.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">Four steps to your first reviewed finding.</p>
       <ol className="mt-4 flex flex-col gap-1">
         {items.map(({ id, done }, i) => {
           const now = id === current;
@@ -78,7 +76,7 @@ export function NextSteps({ facts, items, current, allDone }: { facts: Facts; it
           );
         })}
       </ol>
-      {!canAct && <p className="mt-3 text-xs text-muted-foreground">Admins and analysts add targets and run scans; you can read everything they find.</p>}
+      {!canAct && <p className="mt-3 text-xs text-muted-foreground">You can read everything; admins and analysts run scans.</p>}
       {allDone && <button type="button" onClick={() => setOpen(false)} className="mt-3 text-sm text-muted-foreground underline">Hide steps</button>}
     </section>
   );

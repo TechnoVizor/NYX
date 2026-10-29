@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Plugins" };
 export default function Page() {
   return (
     <>
-      <PageHeader title="Plugins" description="Every scanner I can run, pinned to an exact image. Each one runs in its own locked-down container." />
+      <PageHeader title="Plugins" description="My scanners, each in its own locked-down container." />
       <PluginsTable />
     </>
   );

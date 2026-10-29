@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Home" };
 export default function Page() {
   return (
     <>
-      <PageHeader title="Home" description="What to do next, and what I have found so far." />
+      <PageHeader title="Home" description="Your next step and the latest results." />
       <HomeView />
     </>
   );
