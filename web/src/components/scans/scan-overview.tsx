@@ -51,7 +51,7 @@ export function ScanOverview({ id }: { id: string }) {
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[["Targets followed", scan.targets_in_scope], ["Out of scope", scan.targets_out_of_scope],
           ["Runs", Object.values(scan.runs).reduce((a, b) => a + (b ?? 0), 0)], ["Events", scan.events]].map(([k, v]) => (
-          <div key={k} className="rounded-lg border border-border p-4">
+          <div key={k} className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs text-subtle">{k}</p>
             <p className="mt-1 font-mono text-lg">{v}</p>
           </div>
@@ -67,10 +67,10 @@ export function ScanOverview({ id }: { id: string }) {
       </section>
       <section>
         <h2 className="mb-3 text-sm font-semibold">Runs</h2>
-        <ul className="rounded-lg border border-border text-sm">
+        <ul className="rounded-lg border border-border bg-card text-sm">
           {(runs ?? []).map((r) => (
             <li key={r.id} className="border-b border-border last:border-0">
-              <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="flex w-full flex-wrap items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-1">
+              <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id} className="flex w-full flex-wrap items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-3">
                 <span className="inline-flex items-center gap-2 font-medium"><PluginTile id={r.plugin_id} />{name(r.plugin_id)}</span>
                 <StatusText status={r.status} />
                 <span className="text-xs text-subtle">{r.targets.length === 1 ? r.targets[0].value : `${r.targets.length} targets`} · {r.event_count} events{r.attempt > 1 && ` · attempt ${r.attempt}`}</span>
@@ -84,7 +84,7 @@ export function ScanOverview({ id }: { id: string }) {
       </section>
       <section>
         <h2 className="mb-3 text-sm font-semibold">Targets</h2>
-        <ul className="rounded-lg border border-border font-mono text-xs">
+        <ul className="rounded-lg border border-border bg-card font-mono text-xs">
           {(targets ?? []).map((t) => (
             <li key={`${t.type}:${t.value}`} className={cn("flex gap-3 border-b border-border px-4 py-1.5 last:border-0", !t.in_scope && "text-subtle")}>
               <span className="w-14 shrink-0">{t.type}</span>

@@ -22,7 +22,7 @@ export function PluginsTable() {
   };
 
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="divide-y divide-border rounded-lg border border-border bg-card">
       {data.map((p) => (
         <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
           <div className="flex min-w-48 flex-1 flex-col">

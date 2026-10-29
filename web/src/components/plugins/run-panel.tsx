@@ -51,7 +51,7 @@ export function RunPanel({ plugin }: { plugin: PluginDetail }) {
   };
 
   return (
-    <section className="rounded-lg border border-border p-5">
+    <section className="rounded-lg border border-border bg-card p-5">
       <h2 className="text-sm font-semibold">Run against one target</h2>
       <p className="mt-1 text-xs text-muted-foreground">Only targets in scope. {plugin.risk_level !== "passive" && "This plugin touches the target, so its scope entry must allow active scanning."}</p>
       <form onSubmit={submit} className="mt-4 flex flex-wrap items-center gap-2">

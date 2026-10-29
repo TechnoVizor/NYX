@@ -45,7 +45,7 @@ export function ScopeManager() {
       {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : !scope?.length ? (
         <EmptyState icon={Crosshair}>No targets yet. Until there is one, I refuse every scan.</EmptyState>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-card">
           {scope.map((s) => (
             <li key={s.id} className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
               <div>
@@ -75,7 +75,7 @@ export function ScopeManager() {
         </ul>
       )}
       {admin && (
-        <form onSubmit={add} data-tour="target-form" className="space-y-3 rounded-lg border border-border p-4">
+        <form onSubmit={add} data-tour="target-form" className="space-y-3 rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-semibold">Add a target</h2>
           <div className="flex flex-wrap gap-2">
             <Choice value={f.kind} onChange={(v) => setF({ ...f, kind: v as ScopeInput["kind"] })} label="Kind" options={[{ value: "domain", label: "Domain" }, { value: "cidr", label: "IP or range" }]} />

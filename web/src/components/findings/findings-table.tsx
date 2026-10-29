@@ -72,7 +72,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
         <ul className="flex flex-col gap-2 md:hidden">
           {rows.map((f, i) => (
             <li key={f.id} data-tour={i === 0 ? "finding-row" : undefined}>
-              <Link href={`/app/findings/${f.id}`} className="flex flex-col gap-1.5 rounded-lg border border-border p-3 hover:bg-surface-1">
+              <Link href={`/app/findings/${f.id}`} className="flex flex-col gap-1.5 rounded-lg border border-border p-3 hover:bg-surface-3">
                 <span className="flex items-center gap-2"><SeverityBadge severity={f.severity} /><FindingStatusText status={f.status} /></span>
                 <span className="font-medium">{f.title}</span>
                 <span className="truncate font-mono text-xs text-muted-foreground">{f.matched_at}</span>
@@ -80,14 +80,14 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
             </li>
           ))}
         </ul>
-        <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card md:block">
           <table className="w-full text-sm">
-            <thead className="border-b border-border text-left text-xs text-subtle">
+            <thead className="border-b border-border bg-surface-2 text-left text-xs text-muted-foreground">
               <tr>{["Severity", "Finding", "Where", ...(onePlugin ? [] : ["Plugin"]), "Status", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((f, i) => (
-                <tr key={f.id} data-tour={i === 0 ? "finding-row" : undefined} className="border-b border-border last:border-0 hover:bg-surface-1">
+                <tr key={f.id} data-tour={i === 0 ? "finding-row" : undefined} className="border-b border-border last:border-0 hover:bg-surface-3">
                   <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
                   <td className="px-4 py-3">
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>

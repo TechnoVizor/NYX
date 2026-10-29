@@ -38,7 +38,7 @@ function HttpCode({ code }: { code: unknown }) {
   const tone = code < 300 ? "text-sev-low border-sev-low/40" : code < 400 ? "text-sev-info border-sev-info/40" : "text-sev-high border-sev-high/40";
   return <span className={`rounded border px-1 font-mono text-xs ${tone}`}>{code}</span>;
 }
-const list = "rounded-lg border border-border text-sm";
+const list = "rounded-lg border border-border bg-card text-sm";
 const item = "flex items-center gap-3 border-b border-border px-3 py-2 last:border-0";
 
 /** The attributes worth a glance in the table; the panel shows everything. */
@@ -80,7 +80,7 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
         <ul className="flex flex-col gap-2 md:hidden">
           {rows.map((a) => (
             <li key={a.id}>
-              <button type="button" onClick={() => setOpen(a.id)} className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-surface-1">
+              <button type="button" onClick={() => setOpen(a.id)} className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left hover:bg-surface-3">
                 <KindIcon kind={a.kind} />
                 <span className="min-w-0 flex-1 truncate font-mono text-xs">{a.value}</span>
                 <HttpCode code={a.data.status_code} />
@@ -89,14 +89,14 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
             </li>
           ))}
         </ul>
-        <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card md:block">
           <table className="w-full text-sm">
-            <thead className="border-b border-border text-left text-xs text-subtle">
+            <thead className="border-b border-border bg-surface-2 text-left text-xs text-muted-foreground">
               <tr>{["Asset", "Details", "Open findings", "First seen", "Last seen"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((a) => (
-                <tr key={a.id} className="border-b border-border last:border-0 hover:bg-surface-1">
+                <tr key={a.id} className="border-b border-border last:border-0 hover:bg-surface-3">
                   <td className="max-w-96 px-4 py-3">
                     <button type="button" onClick={() => setOpen(a.id)} className="flex max-w-full items-center gap-2 font-mono text-xs hover:underline" title={`${kindLabel(a.kind)}: ${a.value}`}>
                       <KindIcon kind={a.kind} /><span className="truncate">{a.value}</span>
@@ -129,7 +129,7 @@ function AssetPanel({ id }: { id: string }) {
     <div className="flex flex-col gap-5">
       <DialogHeader><DialogTitle className="break-all font-mono text-sm">{a.value}</DialogTitle></DialogHeader>
       <p className="text-xs text-subtle">{kindLabel(a.kind)} · first seen <Time iso={a.first_seen} /> · last seen <Time iso={a.last_seen} /></p>
-      <pre className="overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs">{JSON.stringify(a.data, null, 2)}</pre>
+      <pre className="overflow-x-auto rounded-lg border border-border bg-card p-3 font-mono text-xs">{JSON.stringify(a.data, null, 2)}</pre>
       <section>
         <h3 className="mb-2 text-sm font-semibold">Findings</h3>
         <ul className={list}>
