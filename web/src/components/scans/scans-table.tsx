@@ -1,23 +1,18 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import Link from "next/link";
-import { Activity, Wrench } from "lucide-react";
+import { Activity } from "lucide-react";
 import { StatusText } from "@/components/scans/scan-status";
 import { Time } from "@/components/shared/time";
-import { usePluginName, useScans } from "@/lib/api/hooks";
+import { PluginTiles } from "@/components/shared/plugin-tile";
+import { useScans } from "@/lib/api/hooks";
 import { duration } from "@/lib/format";
 import type { Scan } from "@/lib/types";
 
 const took = (s: Scan) => (s.started_at ? duration(((s.finished_at ? Date.parse(s.finished_at) : Date.now()) - Date.parse(s.started_at)) / 1000) : "—");
 
-function Tools({ ids }: { ids: string[] }) {
-  const name = usePluginName();
-  return (
-    <span title={ids.map(name).join(", ")} className="inline-flex items-center gap-1 rounded border border-border-strong px-1.5 text-xs text-muted-foreground">
-      <Wrench className="size-3" aria-hidden /> {ids.length} tools
-    </span>
-  );
-}
+const Tools = ({ ids }: { ids: string[] }) => <PluginTiles ids={ids} />;
 
 export function ScansTable() {
   const { data, isLoading, error } = useScans();
@@ -25,10 +20,9 @@ export function ScansTable() {
   if (error) return <p role="alert" className="text-sm text-sev-critical">{error.message}</p>;
   if (!data?.length)
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-        <Activity className="size-5 shrink-0 text-brand" aria-hidden />
-        <span>No scans yet. <Link href="/app/scans/new" className="text-foreground underline">Start one</Link></span>
-      </div>
+      <EmptyState icon={Activity}>
+        No scans yet. <Link href="/app/scans/new" className="text-foreground underline">Start one</Link>
+      </EmptyState>
     );
   return (
     <>

@@ -13,7 +13,7 @@ export function Logo({ href = "/", compact = false, className }: { href?: string
   return (
     <Link href={href} className={cn("nyx-logo flex items-center gap-2.5 rounded-md", className)} aria-label="NYX home">
       <span className={cn("block overflow-hidden", compact && "w-[31px]")}>
-        <svg viewBox="0 0 1071 362" fill="#fff" aria-hidden className="block h-6 w-auto max-w-none">
+        <svg viewBox="0 0 1071 362" fill="currentColor" aria-hidden className="block h-6 w-auto max-w-none">
           {letters.map((d, i) => (
             <path key={i} d={d} className="nyx-letter" style={{ "--i": i } as CSSProperties} />
           ))}

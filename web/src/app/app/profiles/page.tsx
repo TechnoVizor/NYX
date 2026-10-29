@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Scan Profiles" };
 export default function Page() {
   return (
     <>
-      <PageHeader title="Scan profiles" description="Saved sets of plugins and depth." />
+      <PageHeader title="Scan profiles" />
       <ProfilesView />
     </>
   );

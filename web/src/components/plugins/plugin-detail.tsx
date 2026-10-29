@@ -20,7 +20,7 @@ export function PluginDetailView({ id }: { id: string }) {
   ];
   return (
     <>
-      <PageHeader title={p.name} description={p.description} actions={<RiskBadge risk={p.risk_level} />} />
+      <PageHeader title={p.name} info={p.description} actions={<RiskBadge risk={p.risk_level} />} />
       <dl className="mb-8 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-[8rem_1fr]">
         {facts.map(([k, v]) => <div key={k} className="contents"><dt className="text-subtle">{k}</dt><dd className="font-mono text-xs leading-6">{v}</dd></div>)}
       </dl>

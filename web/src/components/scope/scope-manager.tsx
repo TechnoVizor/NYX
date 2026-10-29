@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Crosshair, Eye, Globe, Network, Trash2, Zap } from "lucide-react";
 import { Choice } from "@/components/shared/choice";
@@ -42,10 +43,7 @@ export function ScopeManager() {
   return (
     <div className="max-w-3xl space-y-8">
       {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : !scope?.length ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-          <Crosshair className="size-5 shrink-0 text-brand" aria-hidden />
-          No targets yet. Until there is one, I refuse every scan.
-        </div>
+        <EmptyState icon={Crosshair}>No targets yet. Until there is one, I refuse every scan.</EmptyState>
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border">
           {scope.map((s) => (

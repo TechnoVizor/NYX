@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { Time } from "@/components/shared/time";
 import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -13,7 +14,7 @@ import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
 import { useAsset, useAssets } from "@/lib/api/hooks";
 import type { Asset } from "@/lib/types";
-import { param, syncQuery, type SearchParams } from "@/lib/utils";
+import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
 const kindName: Record<string, string> = {
   http_service: "Web service", subdomain: "Subdomain", domain: "Domain", ip: "IP address",
@@ -22,9 +23,14 @@ const kindName: Record<string, string> = {
 const kindLabel = (k: string) => kindName[k] ?? k;
 const kindIcon: Record<string, typeof Globe> = { http_service: Globe, subdomain: Network, domain: Network, ip: Server, port: Plug, certificate: Lock, endpoint: Link2 };
 
+// A kind keeps one theme hue everywhere, so the list reads by colour before by word.
+const kindTone: Record<string, string> = {
+  domain: "text-sev-info", subdomain: "text-sev-info", ip: "text-purple", port: "text-sev-high", http_service: "text-sev-low", endpoint: "text-sev-low", certificate: "text-sev-medium",
+};
+
 function KindIcon({ kind }: { kind: string }) {
   const Icon = kindIcon[kind] ?? Boxes;
-  return <Icon className="size-4 shrink-0 text-muted-foreground" aria-label={kindLabel(kind)} />;
+  return <Icon className={cn("size-4 shrink-0", kindTone[kind] ?? "text-muted-foreground")} aria-label={kindLabel(kind)} />;
 }
 
 function HttpCode({ code }: { code: unknown }) {
@@ -61,14 +67,13 @@ export function AssetsView({ searchParams }: { searchParams?: SearchParams }) {
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading assets…</p> : !rows.length ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-          {kind || query ? <SearchX className="size-5 shrink-0" aria-hidden /> : <Boxes className="size-5 shrink-0 text-brand" aria-hidden />}
+        <EmptyState icon={kind || query ? SearchX : Boxes} tone={kind || query ? "muted" : "brand"}>
           {kind || query ? (
-            <span>No assets match these filters. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></span>
+            <>No assets match. <button type="button" onClick={() => { setKind(""); setQ(""); }} className="text-foreground underline">Clear filters</button></>
           ) : (
-            <span>No assets yet. A scan fills this list.</span>
+            "No assets yet. A scan fills this list."
           )}
-        </div>
+        </EmptyState>
       ) : (
         <>
         {/* Phones: one row per asset with what matters. */}

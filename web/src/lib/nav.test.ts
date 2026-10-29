@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { navGroups, primaryNav, scanTabs } from "./nav.ts";
+import { navGroups, primaryNav, scanTabs, settingsTabs } from "./nav.ts";
 
 const app = new URL("../app/", import.meta.url);
 const page = (route: string) => new URL(`.${route}/page.tsx`, app);
@@ -14,6 +14,10 @@ function assertBuilt(route: string) {
 
 test("every menu item opens a built page", () => {
   for (const item of navGroups.flatMap((g) => g.items)) assertBuilt(item.href);
+});
+
+test("every settings tab opens a built page", () => {
+  for (const tab of settingsTabs) assertBuilt(tab.href);
 });
 
 test("every scan tab opens a built page", () => {

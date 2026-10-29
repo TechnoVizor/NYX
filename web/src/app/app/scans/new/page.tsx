@@ -8,7 +8,7 @@ export default async function Page(props: PageProps<"/app/scans/new">) {
   const { profile } = await props.searchParams;
   return (
     <>
-      <PageHeader title="New scan" description="A target and a profile. That is all." />
+      <PageHeader title="New scan" />
       <NewScanForm initialProfile={typeof profile === "string" ? profile : undefined} />
     </>
   );

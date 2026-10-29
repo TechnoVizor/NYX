@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { Time } from "@/components/shared/time";
 import { Choice } from "@/components/shared/choice";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -9,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FindingStatusText, statusLabel } from "@/components/findings/finding-status";
 import { SeverityBadge } from "@/components/findings/severity-badge";
-import { useFindings, usePluginName, usePlugins } from "@/lib/api/hooks";
+import { PluginTile } from "@/components/shared/plugin-tile";
+import { useFindings, usePlugins } from "@/lib/api/hooks";
 import { findingStatuses, severities, type FindingStatus, type Severity } from "@/lib/types";
 import { cn, param, syncQuery, type SearchParams } from "@/lib/utils";
 
@@ -41,7 +43,6 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
   });
   const rows = data?.pages.flatMap((p) => p.items) ?? [];
   const onePlugin = new Set(rows.map((r) => r.plugin_id)).size <= 1; // a column with one value says nothing
-  const pluginName = usePluginName();
   const toggle = (s: Severity) => setSev(sev.includes(s) ? sev.filter((x) => x !== s) : [...sev, s]);
 
   return (
@@ -60,14 +61,11 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
       </div>
       {error && <p role="alert" className="text-sm text-sev-critical">{error.message}</p>}
       {isLoading ? <p className="text-sm text-muted-foreground">Loading findings…</p> : !rows.length ? (
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border-strong p-5 text-sm text-muted-foreground">
-          {filtered ? <SearchX className="size-5 shrink-0" aria-hidden /> : <ShieldCheck className="size-5 shrink-0 text-sev-low" aria-hidden />}
+        <EmptyState icon={filtered ? SearchX : ShieldCheck} tone={filtered ? "muted" : "green"}>
           {filtered ? (
-            <span>No findings match these filters. <button type="button" onClick={clear} className="text-foreground underline">Clear filters</button></span>
-          ) : (
-            <span>{scanId ? "No open findings from this scan." : "No open findings."}</span>
-          )}
-        </div>
+            <>No findings match. <button type="button" onClick={clear} className="text-foreground underline">Clear filters</button></>
+          ) : scanId ? "No open findings from this scan." : "No open findings."}
+        </EmptyState>
       ) : (
         <>
         {/* Phones: one card per finding; the table needs more width than a phone has. */}
@@ -95,7 +93,7 @@ export function FindingsTable({ scanId, searchParams }: { scanId?: string; searc
                     <Link href={`/app/findings/${f.id}`} className="font-medium hover:underline">{f.title}</Link>
                   </td>
                   <td className="max-w-80 truncate px-4 py-3 font-mono text-xs" title={f.matched_at}>{f.matched_at}</td>
-                  {!onePlugin && <td className="px-4 py-3 text-xs text-muted-foreground">{pluginName(f.plugin_id)}</td>}
+                  {!onePlugin && <td className="px-4 py-3"><PluginTile id={f.plugin_id} withName /></td>}
                   <td className="px-4 py-3"><FindingStatusText status={f.status} /></td>
                   <td className="px-4 py-3 text-xs text-muted-foreground"><Time iso={f.last_seen} /></td>
                 </tr>

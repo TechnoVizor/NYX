@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "themes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/themes.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

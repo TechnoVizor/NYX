@@ -2,6 +2,7 @@
 
 import { Time } from "@/components/shared/time";
 import Link from "next/link";
+import { Boxes, Flame, type LucideIcon, ShieldAlert, Sparkles } from "lucide-react";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import { StatusText } from "@/components/scans/scan-status";
 import { useDashboard } from "@/lib/api/hooks";
@@ -10,15 +11,28 @@ import { severities, type Dashboard, type Severity } from "@/lib/types";
 const fill: Record<Severity, string> = {
   critical: "bg-sev-critical", high: "bg-sev-high", medium: "bg-sev-medium", low: "bg-sev-low", info: "bg-sev-info",
 };
-const card = "rounded-lg border border-border p-4";
+// Plain sections divided by a hairline: the data is the content, no card shell around it.
+const card = "border-t border-border pt-4";
 const list = "rounded-lg border border-border text-sm";
 const item = "flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-0";
 
-function Tile({ label, value, href }: { label: string; value: number; href: string }) {
+const tone = {
+  red: "bg-sev-critical-soft text-sev-critical",
+  orange: "bg-sev-high-soft text-sev-high",
+  blue: "bg-sev-info-soft text-sev-info",
+  green: "bg-sev-low-soft text-sev-low",
+} as const;
+
+function Stat({ icon: Icon, tint, value, label, href }: { icon: LucideIcon; tint: keyof typeof tone; value: number; label: string; href: string }) {
   return (
-    <Link href={href} className={`${card} hover:bg-surface-1`}>
-      <p className="text-xs text-subtle">{label}</p>
-      <p className="mt-1 font-mono text-2xl">{value}</p>
+    <Link href={href} className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-1">
+      <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${tone[tint]}`}>
+        <Icon className="size-4.5" aria-hidden />
+      </span>
+      <span className="flex flex-col">
+        <span className="font-mono text-xl leading-6">{value}</span>
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </span>
     </Link>
   );
 }
@@ -66,11 +80,11 @@ export function DashboardView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile label="Open critical + high" value={d.open_by_severity.critical + d.open_by_severity.high} href="/app/findings" />
-        <Tile label="Open findings" value={d.open_total} href="/app/findings" />
-        <Tile label="Assets" value={d.assets_total} href="/app/assets" />
-        <Tile label="New assets, 7 days" value={d.assets_new_7d} href="/app/assets" />
+      <section aria-label="At a glance" className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-surface-1 p-1 lg:grid-cols-4">
+        <Stat icon={Flame} tint="red" value={d.open_by_severity.critical + d.open_by_severity.high} label="Critical + high" href="/app/findings?severity=critical,high" />
+        <Stat icon={ShieldAlert} tint="orange" value={d.open_total} label="Open findings" href="/app/findings" />
+        <Stat icon={Boxes} tint="blue" value={d.assets_total} label="Assets" href="/app/assets" />
+        <Stat icon={Sparkles} tint="green" value={d.assets_new_7d} label="New this week" href="/app/assets" />
       </section>
       <section className="grid gap-6 lg:grid-cols-2">
         <SeverityBar open={d.open_by_severity} />

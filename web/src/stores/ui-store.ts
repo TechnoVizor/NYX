@@ -1,15 +1,19 @@
 import { create } from "zustand";
+import { saveRailOpen } from "@/lib/rail";
 
 type UiState = {
-  sidebarCollapsed: boolean;
   paletteOpen: boolean;
-  toggleSidebar: () => void;
+  railOpen: boolean;
   setPaletteOpen: (open: boolean) => void;
+  setRailOpen: (open: boolean) => void;
 };
 
 export const useUiStore = create<UiState>((set) => ({
-  sidebarCollapsed: false,
   paletteOpen: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  railOpen: true,
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setRailOpen: (railOpen) => {
+    saveRailOpen(railOpen);
+    set({ railOpen });
+  },
 }));

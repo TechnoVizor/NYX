@@ -11,3 +11,13 @@ test("a failed scan offers Run again, wherever the user is", () => {
     assert.ok(c.body.startsWith("Runner down."));
   }
 });
+
+test("a done step says so on its own screen and moves on with Next", () => {
+  const cases = [["target", 2, "/app/targets", "target-form"], ["scan", 3, "/app/scans", "nav-scans"], ["review", 5, "/app/findings", "finding-row"]] as const;
+  for (const [step, index, path, target] of cases) {
+    const c = copyFor({ step, index, variant: "done" }, facts, path);
+    assert.equal(c.name, { target: "Targets", scan: "Scan", review: "Review" }[step]);
+    assert.deepEqual(c.primary, { label: step === "review" ? "Finish" : "Next", ack: true }, step);
+    assert.equal(c.target, target, step);
+  }
+});
