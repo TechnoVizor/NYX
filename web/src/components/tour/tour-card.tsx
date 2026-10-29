@@ -81,7 +81,7 @@ export function TourCard({
       initial={reduce ? false : { opacity: 0, y: top + 8, x: left }}
       animate={{ opacity: 1, x: left, y: top }}
       transition={reduce ? { duration: 0 } : { duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 z-60 flex w-[calc(100vw-24px)] gap-4 overflow-hidden rounded-xl border border-border-strong bg-surface-2 p-4 shadow-2xl md:w-[380px]"
+      className="fixed top-0 left-0 z-60 flex w-[calc(100vw-24px)] gap-4 overflow-hidden rounded-xl border border-border-strong bg-surface-2 p-4 md:w-[380px]"
     >
       <Image src="/brand/nyx-portrait.webp" alt="" width={72} height={96} className="h-24 w-[72px] shrink-0 rounded-lg bg-surface-3 object-cover object-top" />
       <div className="flex min-w-0 flex-col gap-2">

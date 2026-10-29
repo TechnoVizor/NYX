@@ -45,7 +45,7 @@ export function ProfilesView() {
       {err && <p role="alert" className="text-sm text-sev-critical">{err}</p>}
       <ul className="grid gap-3 md:grid-cols-2">
         {(profiles ?? []).map((p) => (
-          <li key={p.id} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+          <li key={p.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-2">
               {p.builtin && <Lock className="size-3.5 text-subtle" aria-label="Built-in, read-only" />}
               <h2 className="font-semibold">{p.name}</h2>

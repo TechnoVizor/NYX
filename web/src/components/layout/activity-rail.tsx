@@ -28,10 +28,10 @@ function Tip({ open, label, children }: { open: boolean; label: string; children
 
 function RailItem({ item, open, badge }: { item: NavItem; open: boolean; badge?: number }) {
   const pathname = usePathname();
-  const { label, href, icon: Icon, tour, step } = item;
+  const { label, href, icon: Icon, tour } = item;
   const active = isActive(pathname, href);
   return (
-    <Tip open={open} label={step ? `${step} · ${label}` : label}>
+    <Tip open={open} label={label}>
       <Link
         href={href}
         data-tour={tour}
@@ -45,7 +45,6 @@ function RailItem({ item, open, badge }: { item: NavItem; open: boolean; badge?:
       >
         <Icon className="size-5 shrink-0" strokeWidth={1.75} />
         {open && <span className={cn("flex-1 truncate text-[13px]", active && "text-foreground")}>{label}</span>}
-        {open && step && <span className="font-mono text-xs text-subtle" aria-hidden>{step}</span>}
         {!!badge && (
           <span
             className={cn(
@@ -62,7 +61,7 @@ function RailItem({ item, open, badge }: { item: NavItem; open: boolean; badge?:
   );
 }
 
-/** VS Code-style sidebar: open with names by default, collapses to icons (button or Ctrl+B); the choice is remembered. */
+/** VS Code-style sidebar: open with names by default (no step numbers: the tour teaches the order), collapses to icons (button or Ctrl+B); the choice is remembered. */
 export function ActivityRail() {
   const canScan = useMe().data?.role !== "viewer";
   const open_ = useDashboard().data?.open_by_severity;

@@ -43,13 +43,14 @@ export const THEMES: Theme[] = [
     id: "nyx",
     name: "NYX",
     kind: "dark",
+    // Dovetail-style control room: near-black canvas, depth by tone (#0a0a0a > #141414 > #1e1e1e > #313131), one cornflower accent.
     input: {
-      bg: "#050506", side: "#0a0a0c", panel: "#101014", fg: "#f4f4f5", muted: "#a1a1aa", border: "#19191c",
-      accent: "#8ea2ff", onAccent: "#08080a", primary: "#f4f4f5", onPrimary: "#08080a",
-      bar: "#8ea2ff", onBar: "#08080a", barAlert: "#ff5d62", onBarAlert: "#08080a",
+      bg: "#0a0a0a", side: "#0f0f0f", panel: "#141414", fg: "#ffffff", muted: "#a7a7a7", border: "#1e1e1e",
+      accent: "#6798ff", onAccent: "#0a0a0a", primary: "#ffffff", onPrimary: "#0a0a0a",
+      bar: "#6798ff", onBar: "#0a0a0a", barAlert: "#ff5d62", onBarAlert: "#0a0a0a",
       red: "#ff5d62", orange: "#ff9b52", yellow: "#e6c95c", green: "#55c991", blue: "#72a8ff", purple: "#b392ff",
     },
-    overrides: { "surface-1": "#0a0a0c", "surface-3": "#16161b", subtle: "#8e8e97", input: "#68686f", "border-strong": "#232327" },
+    overrides: { "surface-3": "#1e1e1e", "border-strong": "#313131" },
   },
   {
     id: "github-dark",
@@ -153,7 +154,7 @@ export function deriveTokens({ input: i, overrides }: Theme): Record<TokenName, 
   const t: Record<TokenName, string> = {
     background: i.bg, "surface-1": surface1, "surface-2": i.panel, "surface-3": surface3,
     foreground: i.fg, "muted-foreground": i.muted, subtle: i.muted,
-    card: surface1, "card-foreground": i.fg, popover: i.panel, "popover-foreground": i.fg,
+    card: i.panel, "card-foreground": i.fg, popover: i.panel, "popover-foreground": i.fg,
     primary: i.primary, "primary-foreground": i.onPrimary,
     secondary: surface3, "secondary-foreground": i.fg, muted: surface3,
     accent: hover, "accent-foreground": i.fg, destructive: i.red,

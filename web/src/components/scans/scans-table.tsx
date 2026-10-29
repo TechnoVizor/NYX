@@ -30,7 +30,7 @@ export function ScansTable() {
       <ul className="flex flex-col gap-2 md:hidden">
         {data.map((s) => (
           <li key={s.id}>
-            <Link href={`/app/scans/${s.id}`} className="flex flex-col gap-1.5 rounded-lg border border-border p-3 hover:bg-surface-1">
+            <Link href={`/app/scans/${s.id}`} className="flex flex-col gap-1.5 rounded-lg border border-border p-3 hover:bg-surface-3">
               <span className="font-medium break-all">{s.root_target.value}</span>
               <span className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <StatusText status={s.status} />
@@ -42,14 +42,14 @@ export function ScansTable() {
           </li>
         ))}
       </ul>
-      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card md:block">
         <table className="w-full text-sm">
-          <thead className="border-b border-border text-left text-xs text-subtle">
+          <thead className="border-b border-border bg-surface-2 text-left text-xs text-muted-foreground">
             <tr>{["Target", "Status", "Tools", "Started", "Took"].map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
           </thead>
           <tbody>
             {data.map((s) => (
-              <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-1">
+              <tr key={s.id} className="border-b border-border last:border-0 hover:bg-surface-3">
                 <td className="px-4 py-3"><Link href={`/app/scans/${s.id}`} className="font-medium hover:underline">{s.root_target.value}</Link></td>
                 <td className="px-4 py-3"><StatusText status={s.status} /></td>
                 <td className="px-4 py-3"><Tools ids={s.plugin_ids} /></td>

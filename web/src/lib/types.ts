@@ -70,7 +70,7 @@ export type AssetDetail = Asset & { findings: FindingRow[]; scans: Scan[] };
 
 export type Dashboard = {
   open_by_severity: Record<Severity, number>; open_total: number; assets_total: number; assets_new_7d: number;
-  findings_per_day: { date: string; count: number }[]; recent_scans: Scan[];
+  findings_per_day: { date: string; count: number; by_severity?: Record<Severity, number> }[]; recent_scans: Scan[];
   top_assets: (AssetRef & { open_findings: number; worst_severity: Severity })[];
 };
 

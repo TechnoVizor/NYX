@@ -23,7 +23,7 @@ export function UserMenu() {
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
-          <Menu.Popup className="min-w-56 origin-(--transform-origin) rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-[opacity,transform] duration-150 ease-out data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+          <Menu.Popup className="min-w-56 origin-(--transform-origin) rounded-lg bg-popover p-1 text-popover-foreground ring-1 ring-border-strong transition-[opacity,transform] duration-150 ease-out data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
             <div className="px-2 py-1.5">
               <p className="truncate text-[13px] font-medium">{me.email}</p>
               <span className="mt-1 inline-block rounded bg-brand-soft px-1.5 text-xs capitalize text-brand">{me.role}</span>

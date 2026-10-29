@@ -21,7 +21,11 @@ def dashboard(db: DB, _: Anyone):
     is_open = Finding.status.in_(OPEN)
     by_sev = dict(db.execute(select(Finding.severity, func.count()).where(is_open).group_by(Finding.severity)).all())
     day = func.date(func.timezone("UTC", Finding.first_seen))
-    per_day = dict(db.execute(select(day, func.count()).where(day >= days[0]).group_by(day)).all())
+    per_day: dict = {}
+    for d, sev, n in db.execute(
+        select(day, Finding.severity, func.count()).where(day >= days[0]).group_by(day, Finding.severity)
+    ).all():
+        per_day.setdefault(d, dict.fromkeys(SEVERITIES, 0))[sev] = n
     top = db.execute(
         select(Asset, func.count(Finding.id), func.min(RANK))
         .join(Finding, Finding.asset_id == Asset.id)
@@ -35,7 +39,11 @@ def dashboard(db: DB, _: Anyone):
         "open_total": sum(by_sev.values()),
         "assets_total": db.scalar(select(func.count()).select_from(Asset)),
         "assets_new_7d": db.scalar(select(func.count()).where(Asset.first_seen >= now - timedelta(days=7))),
-        "findings_per_day": [{"date": d.isoformat(), "count": per_day.get(d, 0)} for d in days],
+        "findings_per_day": [
+            {"date": d.isoformat(), "count": sum(by.values()), "by_severity": by}
+            for d in days
+            for by in [per_day.get(d, dict.fromkeys(SEVERITIES, 0))]
+        ],
         "recent_scans": [
             ScanOut.model_validate(s) for s in db.scalars(select(Scan).order_by(Scan.created_at.desc()).limit(5))
         ],

@@ -12,7 +12,7 @@ export function ScanHeader({ id }: { id: string }) {
   useMarkFailedSeen(id, scan?.status === "FAILED");
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1">
-      <h1 className="text-xl font-semibold tracking-tight break-all">{scan?.root_target.value ?? "Scan"}</h1>
+      <h1 className="text-2xl font-semibold break-all">{scan?.root_target.value ?? "Scan"}</h1>
       {scan && <StatusText status={scan.status} />}
       {scan && <span className="text-xs text-muted-foreground"><Time iso={scan.created_at} /></span>}
       <CopyButton text={id} label="Copy scan id" />

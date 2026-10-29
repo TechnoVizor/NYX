@@ -22,7 +22,7 @@ const text = (v: unknown) => (typeof v === "string" ? v : "");
 function Section({ title, children, tour }: { title: string; children: React.ReactNode; tour?: string }) {
   return <section data-tour={tour} className="flex flex-col gap-2"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>;
 }
-const pre = "overflow-x-auto rounded-lg border border-border p-3 font-mono text-xs";
+const pre = "overflow-x-auto rounded-lg border border-border bg-card p-3 font-mono text-xs";
 
 export function FindingDetail({ id }: { id: string }) {
   const qc = useQueryClient();
@@ -70,7 +70,7 @@ export function FindingDetail({ id }: { id: string }) {
           <SeverityBadge severity={f.severity} /><FindingStatusText status={f.status} />
           <PluginTile id={f.plugin_id} withName />
         </div>
-        <h1 className="text-xl font-semibold tracking-tight">{f.title}</h1>
+        <h1 className="text-2xl font-semibold">{f.title}</h1>
         <p className="break-all font-mono text-xs">{f.matched_at}</p>
         <p className="text-xs text-muted-foreground">
           {f.asset && <>On <Link href={`/app/assets?q=${encodeURIComponent(f.asset.value)}`} className="underline">{f.asset.value}</Link> · </>}
@@ -120,7 +120,7 @@ export function FindingDetail({ id }: { id: string }) {
         ) : <p className="text-xs text-subtle">Viewers can&apos;t change the review.</p>}
       </Section>
       <Section title={`Seen in ${f.occurrences_list.length} scan${f.occurrences_list.length === 1 ? "" : "s"}`}>
-        <ul className="rounded-lg border border-border text-xs">
+        <ul className="rounded-lg border border-border bg-card text-xs">
           {f.occurrences_list.map((o) => (
             <li key={o.scan_id} className="flex gap-3 border-b border-border px-4 py-2 last:border-0">
               <Link href={`/app/scans/${o.scan_id}`} className="underline">Scan, <Time iso={o.seen_at} /></Link>
