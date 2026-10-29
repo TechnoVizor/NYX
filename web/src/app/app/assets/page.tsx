@@ -5,11 +5,11 @@ import { PageHeader } from "@/components/shared/page-header";
 export const metadata: Metadata = { title: "Assets" };
 
 export default async function Page(props: PageProps<"/app/assets">) {
-  const { q } = await props.searchParams;
+  const searchParams = await props.searchParams;
   return (
     <>
       <PageHeader title="Assets" description="Every host, address and web service my scans have seen, with what is still open on it." />
-      <AssetsView initialQuery={typeof q === "string" ? q : ""} />
+      <AssetsView searchParams={searchParams} />
     </>
   );
 }

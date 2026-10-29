@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { statusName } from "@/components/scans/scan-status";
 import { api, ApiError } from "@/lib/api/client";
 import { useRun, useRunEvents, useScope } from "@/lib/api/hooks";
 import type { PluginDetail, PluginEvent, TargetType } from "@/lib/types";
@@ -64,7 +65,7 @@ export function RunPanel({ plugin }: { plugin: PluginDetail }) {
       {run && (
         <div className="mt-5">
           <p className="text-xs text-subtle">
-            <span className={cn("font-mono", run.status === "SUCCEEDED" ? "text-sev-low" : live(run.status) ? "text-sev-medium" : "text-sev-critical")}>{run.status}</span>
+            <span className={cn(run.status === "SUCCEEDED" ? "text-sev-low" : live(run.status) ? "text-sev-medium" : "text-sev-critical")}>{statusName[run.status]}</span>
             {" · "}{run.target.value}{" · "}{run.event_count} events{run.error && <> · <span className="text-sev-critical">{run.error}</span></>}
           </p>
           <EventList events={events ?? []} />

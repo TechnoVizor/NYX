@@ -4,11 +4,12 @@ import { PageHeader } from "@/components/shared/page-header";
 
 export const metadata: Metadata = { title: "Findings" };
 
-export default function Page() {
+export default async function Page(props: PageProps<"/app/findings">) {
+  const searchParams = await props.searchParams;
   return (
     <>
       <PageHeader title="Findings" description="Everything my scanners reported, once per issue, across every scan. Review it here." />
-      <FindingsTable />
+      <FindingsTable searchParams={searchParams} />
     </>
   );
 }

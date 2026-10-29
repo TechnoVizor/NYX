@@ -50,7 +50,9 @@ def get_asset(asset_id: uuid.UUID, db: DB, _: Anyone):
     if a is None:
         raise HTTPException(404, "No such asset.")
     findings = db.execute(
-        select(Finding, occurrences_count()).where(Finding.asset_id == a.id).order_by(RANK, Finding.last_seen.desc())
+        select(Finding, occurrences_count())
+        .where(Finding.asset_id == a.id)
+        .order_by(RANK, Finding.last_seen.desc(), Finding.id)
     ).all()
     seen_in = select(ScanTarget.scan_id).where(ScanTarget.value == a.value)
     scans = db.scalars(
