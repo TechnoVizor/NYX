@@ -47,9 +47,31 @@ function Action({ id, facts }: { id: ItemId; facts: Facts }) {
   }
 }
 
-export function NextSteps({ facts, items, current, allDone }: { facts: Facts; items: { id: ItemId; done: boolean }[]; current: ItemId | null; allDone: boolean }) {
+type Props = { facts: Facts; items: { id: ItemId; done: boolean }[]; current: ItemId | null; allDone: boolean; compact?: boolean };
+
+/** After the first scan the path shrinks to one row, so the command center keeps the first viewport. */
+function StepsRow({ facts, items, current }: Props) {
+  return (
+    <section data-tour="home-steps" aria-label="Your next step" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-4 py-3">
+      <ol className="flex items-center gap-1.5" aria-hidden>
+        {items.map(({ id, done }) => (
+          <li key={id} className={cn("h-1.5 w-6 rounded-full", done ? "bg-sev-low" : id === current ? "bg-brand" : "bg-surface-3")} />
+        ))}
+      </ol>
+      <span className="text-sm">
+        <span className="text-muted-foreground">Next: </span>
+        {current && label[current]}
+      </span>
+      {current && facts.role !== "viewer" && <div className="ml-auto"><Action id={current} facts={facts} /></div>}
+    </section>
+  );
+}
+
+export function NextSteps(props: Props) {
+  const { facts, items, current, allDone, compact } = props;
   const [open, setOpen] = useState(false);
   const canAct = facts.role !== "viewer";
+  if (compact) return allDone ? null : <StepsRow {...props} />;
 
   if (allDone && !open)
     return (

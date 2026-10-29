@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Crosshair, Zap } from "lucide-react";
+import { ArrowRight, Crosshair, Zap } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { api, ApiError } from "@/lib/api/client";
 import { useMe, useProfiles } from "@/lib/api/hooks";
 import type { ScopeInput, Target } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 /** What the user typed, as a scan target. The API normalizes and validates it. */
 export function guessTarget(raw: string): Target {
@@ -29,7 +30,10 @@ export function QuickScan() {
   const router = useRouter();
   const { data: me } = useMe();
   const { data: profiles } = useProfiles();
-  const balanced = profiles?.find((p) => p.builtin && p.name === "Balanced" && p.available);
+  const usable = profiles?.filter((p) => p.available) ?? [];
+  const balanced = usable.find((p) => p.builtin && p.name === "Balanced");
+  const [picked, setPicked] = useState<string | null>(null);
+  const profileId = picked ?? balanced?.id ?? usable[0]?.id;
   const [value, setValue] = useState("");
   const [outside, setOutside] = useState<Pick<ScopeInput, "kind" | "value"> | null>(null);
   const [authorization, setAuthorization] = useState("");
@@ -39,7 +43,7 @@ export function QuickScan() {
   if (me?.role !== "admin" && me?.role !== "analyst") return null;
 
   const scan = async (target: Target) => {
-    const s = await api.startScan({ target, profile_id: balanced?.id });
+    const s = await api.startScan({ target, profile_id: profileId });
     router.push(`/app/scans/${s.id}`);
   };
   const run = async (step: () => Promise<void>) => {
@@ -73,24 +77,52 @@ export function QuickScan() {
   };
 
   return (
-    <section id="quick-scan" data-tour="quick-scan" className="rounded-lg border border-border p-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
-        Quick scan
-        <span className="rounded border border-border-strong px-1.5 font-mono text-xs font-normal text-muted-foreground">{balanced ? "Balanced" : "All plugins"}</span>
-      </h2>
-      <form onSubmit={start} className="mt-3 flex flex-wrap gap-2">
-        <Input
+    <section id="quick-scan" data-tour="quick-scan">
+      {/* The command bar: one wide field, the profile as chips, a white Start. */}
+      <form
+        onSubmit={start}
+        className="flex min-h-13 flex-wrap items-center gap-2 rounded-lg border border-border-strong bg-surface-3 py-1.5 pr-1.5 pl-4 transition-colors focus-within:border-brand"
+      >
+        <Crosshair className="size-4 shrink-0 text-brand" aria-hidden />
+        <input
           value={value}
           onChange={(e) => { setValue(e.target.value); setOutside(null); setErr(""); }}
           placeholder="Domain, IP or URL"
           aria-label="Target"
           id="quick-scan-target"
-          className="max-w-sm"
+          autoComplete="off"
+          className="h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
         />
-        <Button type="submit" data-tour="quick-scan-start" disabled={busy || !value.trim() || !!outside}>{busy && !outside ? "Starting…" : "Start scan"}</Button>
+        {usable.length > 1 && (
+          <div role="radiogroup" aria-label="Scan profile" className="flex flex-wrap gap-1.5 max-md:order-last max-md:w-full max-md:pb-1">
+            {usable.map((p) => {
+              const on = p.id === profileId;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setPicked(p.id)}
+                  title={`${p.plugin_ids.length} tools`}
+                  className={cn(
+                    "h-7 rounded border px-2.5 text-xs transition-colors",
+                    on ? "border-brand bg-brand-soft text-foreground" : "border-border-strong text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <Button type="submit" data-tour="quick-scan-start" className="h-10 px-4" disabled={busy || !value.trim() || !!outside}>
+          {busy && !outside ? "Starting…" : "Start scan"}
+          <ArrowRight />
+        </Button>
       </form>
       {outside && me.role === "admin" && (
-        <form onSubmit={addAndStart} className="mt-4 flex max-w-xl flex-col gap-2 border-t border-border pt-4">
+        <form onSubmit={addAndStart} className="mt-3 flex max-w-xl flex-col gap-2 rounded-lg border border-border bg-card p-4">
           <p className="flex items-center gap-2 text-sm"><Crosshair className="size-4 text-brand" aria-hidden /><span className="font-mono">{outside.value}</span> is not a target yet.</p>
           <label className="flex flex-col gap-1.5 text-sm">
             Who allowed it
